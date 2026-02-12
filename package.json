@@ -1,0 +1,28 @@
+{
+  "name": "invitartes-whatsapp-bot",
+  "version": "2.0.0",
+  "description": "Bot de WhatsApp para InvitArtes - Invitaciones digitales",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node bot.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "invitaciones",
+    "invitartes"
+  ],
+  "author": "InvitArtes",
+  "license": "MIT",
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0",
+    "qrcode": "^1.5.3",
+    "express": "^4.18.2",
+    "@puppeteer/browsers": "^2.4.1"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
