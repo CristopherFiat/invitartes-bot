@@ -26,7 +26,7 @@ const client = new Client({
     }),
     puppeteer: {
         headless: true,
-        executablePath: '/nix/store/*/bin/chromium',
+        executablePath: '/usr/bin/chromium',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
