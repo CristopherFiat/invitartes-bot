@@ -17,6 +17,7 @@ const FIREBASE_URLS = {
     imagenLia: 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/lia.webp?alt=media'
 };
 
+// Estado de conversaciones mejorado
 const userStates = new Map();
 
 const client = new Client({
@@ -74,124 +75,225 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 function esMensajeDeInicio(text) {
     const triggers = [
         'hola', 'buenos dias', 'buenas tardes', 'buenas noches',
+        'buen dia', 'buena tarde', 'buena noche', 'ola', 'holis',
         'invitacion', 'invitación', 'boda', 'xv años', 'quinceaños',
         'baby shower', 'cumpleaños', 'evento'
     ];
     return triggers.some(trigger => text.toLowerCase().includes(trigger));
 }
 
-async function enviarInformacionCompleta(userId) {
+async function enviarMenuPrincipal(userId) {
     const chat = await client.getChatById(userId);
-    console.log(`📤 Enviando información a: ${userId}`);
+    console.log(`📤 Enviando menú principal a: ${userId}`);
     
     try {
         await chat.sendStateTyping();
         await sleep(1500);
-        await chat.sendMessage('😊 Con mucho gusto, ahora le explico ✨');
+        await chat.sendMessage('¿Cómo está? 😊 Con gusto le ayudamos ✨');
         
+        await chat.sendStateTyping();
+        await sleep(1500);
+        await chat.sendMessage(
+            '📋 *Menú Principal*\n\n' +
+            '1️⃣ Explícame sobre las invitaciones\n' +
+            '2️⃣ Quiero hablar con un asesor'
+        );
+        
+        console.log(`✅ Menú enviado a: ${userId}`);
+    } catch (error) {
+        console.error('❌ Error enviando menú:', error);
+    }
+}
+
+async function enviarSecuenciaCompleta(userId) {
+    const chat = await client.getChatById(userId);
+    console.log(`📤 Enviando secuencia completa a: ${userId}`);
+    
+    try {
+        // MENSAJE 1
+        await chat.sendStateTyping();
+        await sleep(1500);
+        await chat.sendMessage('😊 Con mucho gusto, ahora le explico ✨');
+        console.log('  ✓ Mensaje 1/9 enviado');
+        
+        // MENSAJE 2 - Características
         await chat.sendStateTyping();
         await sleep(2000);
         await chat.sendMessage(
-            'Le envío algunas funciones de nuestras invitaciones:\n\n' +
-            '💫 *Tu evento, tu estilo:* Diseño 100% personalizado\n\n' +
-            '📱 *Confirmaciones automáticas:* Tus invitados confirman con un clic\n\n' +
-            '🎵 *Multimedia:* Música, videos, galerías de fotos\n\n' +
-            '⏰ *Recordatorios inteligentes:* Nadie olvida tu fecha\n\n' +
-            '🎁 *Mesa de regalos integrada*\n\n' +
-            '📊 *Control total:* Dashboard en tiempo real\n\n' +
-            '♾️ *Sin límites de invitados*\n\n' +
-            '🌍 *Alcance global*\n\n' +
-            '🔄 *Actualizaciones ilimitadas*'
+            'Le envío algunas de las funciones que puede tener en nuestras invitaciones:\n\n' +
+            '💫 *Tu evento, tu estilo:* Diseño 100% personalizado que refleja la esencia de tu celebración\n\n' +
+            '📱 *Confirmaciones automáticas:* Olvídate de estar preguntando uno por uno. Tus invitados confirman con un clic y tú lo ves en tiempo real\n\n' +
+            '🎵 *Ambiente desde el primer momento:* Música, videos, galerías de fotos... tu invitación cobra vida\n\n' +
+            '⏰ *Recordatorios inteligentes:* El sistema se encarga de que nadie olvide tu fecha especial\n\n' +
+            '🎁 *Mesa de regalos integrada:* Tus invitados saben exactamente qué regalarte, sin complicaciones\n\n' +
+            '📊 *Control total:* Dashboard para ver quiénes confirmaron, cuántos van, cuántos asistieron.\n\n' +
+            '♾️ *Sin límites:* Envía a todos tus invitados sin pagar extra por cada uno\n\n' +
+            '🌍 *Alcance global:* ¿Familiares en el extranjero? Llegan en segundos, sin costos de envío\n\n' +
+            '🔄 *Actualizaciones ilimitadas:* ¿Cambió algo? Edita y todos se enteran al instante.'
         );
+        console.log('  ✓ Mensaje 2/9 enviado');
         
+        // MENSAJE 3 - Imagen Sobres + Link
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const imgSobres = await MessageMedia.fromUrl(FIREBASE_URLS.imagenSobres);
             await chat.sendMessage(imgSobres, undefined, {
-                caption: 'Ejemplo real:\n\n🔗 https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
+                caption: 'Le envío un ejemplo real de nuestras invitaciones:\n\n' +
+                         '🔗 *Invitación completa:*\n' +
+                         'https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
             });
+            console.log('  ✓ Mensaje 3/9 enviado (imagen sobres)');
         } catch (error) {
-            await chat.sendMessage('🔗 https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/');
+            console.log('  ⚠️ Error con imagen sobres');
+            await chat.sendMessage(
+                'Le envío un ejemplo real de nuestras invitaciones:\n\n' +
+                '🔗 *Invitación completa:*\n' +
+                'https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
+            );
         }
         
+        // MENSAJE 4 - Imagen Lia + Link
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const imgLia = await MessageMedia.fromUrl(FIREBASE_URLS.imagenLia);
             await chat.sendMessage(imgLia, undefined, {
-                caption: '🔗 https://invitartes.com/invitacion-a-los-xv-anos-de-lia-isabella-muestra/'
+                caption: 'Le comparto otra muestra real 💎\n\n' +
+                         '📲 Abre la invitación aquí:\n' +
+                         'https://invitartes.com/invitacion-xv-anos-lia-haro/'
             });
+            console.log('  ✓ Mensaje 4/9 enviado (imagen Lia)');
         } catch (error) {
-            await chat.sendMessage('🔗 https://invitartes.com/invitacion-a-los-xv-anos-de-lia-isabella-muestra/');
+            console.log('  ⚠️ Error con imagen Lia');
+            await chat.sendMessage(
+                'Le comparto otra muestra real 💎\n\n' +
+                '📲 Abre la invitación aquí:\n' +
+                'https://invitartes.com/invitacion-xv-anos-lia-haro/'
+            );
         }
         
+        // MENSAJE 5 - Video
         await chat.sendStateTyping();
         await sleep(2000);
-        await chat.sendMessage('📸 *Instagram:*\nhttps://www.instagram.com/invitartes.ec');
-        
-        await chat.sendStateTyping();
-        await sleep(2000);
-        try {
-            const audioMedia = await MessageMedia.fromUrl(FIREBASE_URLS.audio);
-            await chat.sendMessage(audioMedia, undefined, {
-                caption: '🎤 Audio explicativo'
-            });
-        } catch (error) {
-            console.log('⚠️ Error enviando audio');
-        }
-        
-        await chat.sendStateTyping();
-        await sleep(3000);
         try {
             const videoMedia = await MessageMedia.fromUrl(FIREBASE_URLS.video);
             await chat.sendMessage(videoMedia, undefined, {
-                caption: '🎬 Video promocional'
+                caption: 'Le envío un videito de cómo funciona nuestro sistema para gestionar invitaciones digitales ✨'
             });
+            console.log('  ✓ Mensaje 5/9 enviado (video)');
         } catch (error) {
-            console.log('⚠️ Error enviando video');
+            console.log('  ⚠️ Error enviando video');
         }
         
+        // MENSAJE 6 - PDF
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const pdfMedia = await MessageMedia.fromUrl(FIREBASE_URLS.pdfPaquetes);
             await chat.sendMessage(pdfMedia, undefined, {
-                caption: '📄 *Catálogo 2026*'
+                caption: 'Le comento que tenemos 3 paquetes diseñados para adaptarse a diferentes necesidades y presupuestos 🎯\n\n' +
+                         'En el PDF adjunto encontrará las características detalladas de cada uno.'
             });
+            console.log('  ✓ Mensaje 6/9 enviado (PDF)');
         } catch (error) {
-            console.log('⚠️ Error enviando PDF');
+            console.log('  ⚠️ Error enviando PDF');
         }
         
+        // MENSAJE 7 - Audio
+        await chat.sendStateTyping();
+        await sleep(2000);
+        await chat.sendMessage('A continuación le explico de manera resumida nuestros paquetes en el audio:');
+        
+        await sleep(1000);
+        try {
+            const audioMedia = await MessageMedia.fromUrl(FIREBASE_URLS.audio);
+            await chat.sendMessage(audioMedia);
+            console.log('  ✓ Mensaje 7/9 enviado (audio)');
+        } catch (error) {
+            console.log('  ⚠️ Error enviando audio');
+        }
+        
+        // MENSAJE 8 - Planes
         await chat.sendStateTyping();
         await sleep(2000);
         await chat.sendMessage(
-            '💰 *PRECIO ESPECIAL: $75*\n\n' +
-            '📌 *Incluye TODO:*\n' +
-            '• Diseño personalizado\n' +
-            '• Confirmaciones ilimitadas\n' +
-            '• Multimedia completa\n' +
-            '• Dashboard de control\n' +
-            '• Mesa de regalos\n' +
-            '• Recordatorios automáticos\n' +
-            '• Soporte técnico\n\n' +
-            '🎁 *PAGO ÚNICO - SIN COSTOS OCULTOS*'
+            '🌟 *Planes de Invitaciones Digitales* 🌟\n\n' +
+            '*ESSENTIAL — $65*\n' +
+            'Sencillo y bonito\n' +
+            '👉 Ejemplo: https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+            '*DELUXE — $79*\n' +
+            'Más estilo + envío público\n' +
+            '👉 Ejemplo: https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+            '*ELITE — $100* 👑\n' +
+            'Todo Deluxe + íconos animados, acceso privado, dashboard, invitaciones ilimitadas, fecha límite, mensajes editables y contador de asistencias en vivo.\n' +
+            '👉 Ejemplo: https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/'
         );
+        console.log('  ✓ Mensaje 8/9 enviado');
         
+        // MENSAJE 9 - Proceso de inicio
         await chat.sendStateTyping();
         await sleep(2000);
         await chat.sendMessage(
-            '📞 *¿Listo para tu invitación?*\n\n' +
-            'WhatsApp: +593 99 380 9643\n' +
-            '📧 invitartesec@gmail.com\n' +
-            '🌐 www.invitartes.com\n\n' +
-            '✨ *¡Tu evento inolvidable!*'
+            'Para iniciar con el proceso, por favor, complete el siguiente formulario (Datos para sus invitaciones):\n\n' +
+            '📝 https://forms.gle/98PBCSF1hbYC3iTj7\n\n' +
+            'O si lo prefiere, también puede enviarnos por WhatsApp los detalles y la temática que desea para sus invitaciones.\n\n' +
+            'Una vez recibamos la información, nos comprometemos a entregarle las invitaciones en un plazo máximo de 5 días.\n\n' +
+            'Empezamos con un abono inicial de $10, que puede realizar al siguiente número de cuenta:\n\n' +
+            '*Banco de Loja*\n' +
+            'Número de cuenta: 2904553231\n' +
+            'Cédula: 1104753122\n' +
+            'Tipo de cuenta: Cuenta de ahorros (cuenta activa)\n' +
+            'Titular: ALVAREZ GRANDA, GUIDO CRISTOPHER\n\n' +
+            'El saldo restante podrá ser cancelado en el momento de la entrega de sus invitaciones. ✨'
         );
+        console.log('  ✓ Mensaje 9/9 enviado');
         
-        console.log(`✅ Información enviada a: ${userId}\n`);
+        // MENSAJE 10 - Cierre
+        await chat.sendStateTyping();
+        await sleep(2000);
+        await chat.sendMessage('Si tiene una pregunta, por favor coméntenos, estamos para servirle ✨');
+        console.log('  ✓ Mensaje 10/10 enviado');
+        
+        // Programar mensaje de seguimiento (7 minutos)
+        setTimeout(async () => {
+            const estado = userStates.get(userId);
+            if (estado && !estado.respondio) {
+                try {
+                    await chat.sendMessage(
+                        'Hola que tal, le saluda *Carolina* del Equipo de *Invitartes* ¿Tiene alguna pregunta?'
+                    );
+                    console.log(`📞 Mensaje de seguimiento enviado a: ${userId}`);
+                } catch (error) {
+                    console.log('⚠️ Error en mensaje de seguimiento');
+                }
+            }
+        }, 7 * 60 * 1000); // 7 minutos
+        
+        console.log(`✅ Secuencia completa enviada a: ${userId}\n`);
         
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('❌ Error enviando secuencia:', error);
+    }
+}
+
+async function enviarMensajeAsesor(userId) {
+    const chat = await client.getChatById(userId);
+    console.log(`📤 Enviando mensaje de asesor a: ${userId}`);
+    
+    try {
+        await chat.sendStateTyping();
+        await sleep(1500);
+        await chat.sendMessage(
+            '👩🏻‍💼 *Asesor en línea*\n\n' +
+            '¡Gracias por comunicarse con nosotros!\n\n' +
+            'En unos momentos uno de nuestros asesores se pondrá en contacto con usted.\n' +
+            'Le pedimos por favor permanecer en línea.\n\n' +
+            'Será un placer atenderle. ✨'
+        );
+        console.log(`✅ Mensaje de asesor enviado a: ${userId}`);
+    } catch (error) {
+        console.error('❌ Error enviando mensaje de asesor:', error);
     }
 }
 
@@ -203,18 +305,37 @@ client.on('message', async (message) => {
         if (chat.isGroup) return;
         
         const userId = message.from;
-        const messageText = message.body;
+        const messageText = message.body.trim();
         
         console.log(`📩 De ${userId}: "${messageText}"`);
         
-        if (esMensajeDeInicio(messageText)) {
-            if (userStates.has(userId)) {
-                console.log(`⏭️ Usuario ya procesado`);
+        // Obtener o crear estado del usuario
+        let estado = userStates.get(userId);
+        
+        // Si es mensaje de inicio y es nuevo usuario
+        if (!estado && esMensajeDeInicio(messageText)) {
+            userStates.set(userId, {
+                menuEnviado: true,
+                respondio: false,
+                timestamp: new Date()
+            });
+            await enviarMenuPrincipal(userId);
+            return;
+        }
+        
+        // Si ya tiene estado, procesar respuesta
+        if (estado) {
+            estado.respondio = true; // Marcar que respondió
+            
+            if (messageText === '1') {
+                await enviarSecuenciaCompleta(userId);
                 return;
             }
             
-            userStates.set(userId, { timestamp: new Date() });
-            await enviarInformacionCompleta(userId);
+            if (messageText === '2') {
+                await enviarMensajeAsesor(userId);
+                return;
+            }
         }
         
     } catch (error) {
