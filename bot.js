@@ -240,20 +240,27 @@ async function enviarSecuenciaCompleta(userId) {
         await chat.sendMessage('Si tiene una pregunta, por favor coméntenos, estamos para servirle ✨');
         console.log('  ✓ Mensaje 10/10 enviado');
         
+        // Marcar que la secuencia está completa y esperar respuesta
+        const estado = userStates.get(userId);
+        if (estado) {
+            estado.secuenciaCompleta = true;
+            estado.respondioPostSecuencia = false;
+        }
+        
         // Programar mensaje de seguimiento (7 minutos)
         setTimeout(async () => {
-            const estado = userStates.get(userId);
-            if (estado && !estado.respondio) {
+            const estadoActual = userStates.get(userId);
+            if (estadoActual && estadoActual.secuenciaCompleta && !estadoActual.respondioPostSecuencia) {
                 try {
                     await chat.sendMessage(
                         'Hola que tal, le saluda *Carolina* del Equipo de *Invitartes* ¿Tiene alguna pregunta?'
                     );
                     console.log(`📞 Mensaje de seguimiento enviado a: ${userId}`);
                 } catch (error) {
-                    console.log('⚠️ Error en mensaje de seguimiento');
+                    console.log('⚠️ Error en mensaje de seguimiento:', error.message);
                 }
             }
-        }, 7 * 60 * 1000);
+        }, 7 * 60 * 1000); // 7 minutos
         
         console.log(`✅ Secuencia completa enviada a: ${userId}\n`);
         
@@ -296,19 +303,28 @@ client.on('message', async (message) => {
         
         let estado = userStates.get(userId);
         
+        // Si es mensaje de inicio y es nuevo usuario
         if (!estado && esMensajeDeInicio(messageText)) {
             userStates.set(userId, {
                 menuEnviado: true,
                 respondio: false,
+                secuenciaCompleta: false,
+                respondioPostSecuencia: false,
                 timestamp: new Date()
             });
             await enviarMenuPrincipal(userId);
             return;
         }
         
+        // Si ya tiene estado
         if (estado) {
-            estado.respondio = true;
+            // Si escribe después de recibir la secuencia completa
+            if (estado.secuenciaCompleta) {
+                estado.respondioPostSecuencia = true;
+                console.log(`✅ Cliente ${userId} respondió después de la secuencia - cancelando seguimiento`);
+            }
             
+            // Procesar opciones del menú
             if (messageText === '1') {
                 await enviarSecuenciaCompleta(userId);
                 return;
