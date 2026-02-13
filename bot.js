@@ -17,7 +17,6 @@ const FIREBASE_URLS = {
     imagenLia: 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/lia.webp?alt=media'
 };
 
-// Estado de conversaciones mejorado
 const userStates = new Map();
 
 const client = new Client({
@@ -133,47 +132,39 @@ async function enviarSecuenciaCompleta(userId) {
         );
         console.log('  ✓ Mensaje 2/9 enviado');
         
-        // MENSAJE 3 - Imagen Sobres + Link
+        // MENSAJE 3 - Imagen Sobres + Texto + Link
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const imgSobres = await MessageMedia.fromUrl(FIREBASE_URLS.imagenSobres);
             await chat.sendMessage(imgSobres, undefined, {
-                caption: 'Le envío un ejemplo real de nuestras invitaciones:\n\n' +
-                         '🔗 *Invitación completa:*\n' +
-                         'https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
+                caption: 'Le envío un ejemplo real de nuestras invitaciones:\n\n🔗 *Invitación completa:*\nhttps://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
             });
-            console.log('  ✓ Mensaje 3/9 enviado (imagen sobres)');
+            console.log('  ✓ Mensaje 3/9 enviado (imagen sobres con caption)');
         } catch (error) {
-            console.log('  ⚠️ Error con imagen sobres');
+            console.log('  ⚠️ Error con imagen sobres, enviando texto separado');
             await chat.sendMessage(
-                'Le envío un ejemplo real de nuestras invitaciones:\n\n' +
-                '🔗 *Invitación completa:*\n' +
-                'https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
+                'Le envío un ejemplo real de nuestras invitaciones:\n\n🔗 *Invitación completa:*\nhttps://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
             );
         }
         
-        // MENSAJE 4 - Imagen Lia + Link
+        // MENSAJE 4 - Imagen Lia + Texto + Link
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const imgLia = await MessageMedia.fromUrl(FIREBASE_URLS.imagenLia);
             await chat.sendMessage(imgLia, undefined, {
-                caption: 'Le comparto otra muestra real 💎\n\n' +
-                         '📲 Abre la invitación aquí:\n' +
-                         'https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                caption: 'Le comparto otra muestra real 💎\n\n📲 Abre la invitación aquí:\nhttps://invitartes.com/invitacion-xv-anos-lia-haro/'
             });
-            console.log('  ✓ Mensaje 4/9 enviado (imagen Lia)');
+            console.log('  ✓ Mensaje 4/9 enviado (imagen Lia con caption)');
         } catch (error) {
-            console.log('  ⚠️ Error con imagen Lia');
+            console.log('  ⚠️ Error con imagen Lia, enviando texto separado');
             await chat.sendMessage(
-                'Le comparto otra muestra real 💎\n\n' +
-                '📲 Abre la invitación aquí:\n' +
-                'https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                'Le comparto otra muestra real 💎\n\n📲 Abre la invitación aquí:\nhttps://invitartes.com/invitacion-xv-anos-lia-haro/'
             );
         }
         
-        // MENSAJE 5 - Video
+        // MENSAJE 5 - Video con texto
         await chat.sendStateTyping();
         await sleep(2000);
         try {
@@ -181,9 +172,10 @@ async function enviarSecuenciaCompleta(userId) {
             await chat.sendMessage(videoMedia, undefined, {
                 caption: 'Le envío un videito de cómo funciona nuestro sistema para gestionar invitaciones digitales ✨'
             });
-            console.log('  ✓ Mensaje 5/9 enviado (video)');
+            console.log('  ✓ Mensaje 5/9 enviado (video con caption)');
         } catch (error) {
             console.log('  ⚠️ Error enviando video');
+            await chat.sendMessage('Le envío un videito de cómo funciona nuestro sistema para gestionar invitaciones digitales ✨');
         }
         
         // MENSAJE 6 - PDF
@@ -192,8 +184,7 @@ async function enviarSecuenciaCompleta(userId) {
         try {
             const pdfMedia = await MessageMedia.fromUrl(FIREBASE_URLS.pdfPaquetes);
             await chat.sendMessage(pdfMedia, undefined, {
-                caption: 'Le comento que tenemos 3 paquetes diseñados para adaptarse a diferentes necesidades y presupuestos 🎯\n\n' +
-                         'En el PDF adjunto encontrará las características detalladas de cada uno.'
+                caption: 'Le comento que tenemos 3 paquetes diseñados para adaptarse a diferentes necesidades y presupuestos 🎯\n\nEn el PDF adjunto encontrará las características detalladas de cada uno.'
             });
             console.log('  ✓ Mensaje 6/9 enviado (PDF)');
         } catch (error) {
@@ -268,7 +259,7 @@ async function enviarSecuenciaCompleta(userId) {
                     console.log('⚠️ Error en mensaje de seguimiento');
                 }
             }
-        }, 7 * 60 * 1000); // 7 minutos
+        }, 7 * 60 * 1000);
         
         console.log(`✅ Secuencia completa enviada a: ${userId}\n`);
         
@@ -309,10 +300,8 @@ client.on('message', async (message) => {
         
         console.log(`📩 De ${userId}: "${messageText}"`);
         
-        // Obtener o crear estado del usuario
         let estado = userStates.get(userId);
         
-        // Si es mensaje de inicio y es nuevo usuario
         if (!estado && esMensajeDeInicio(messageText)) {
             userStates.set(userId, {
                 menuEnviado: true,
@@ -323,9 +312,8 @@ client.on('message', async (message) => {
             return;
         }
         
-        // Si ya tiene estado, procesar respuesta
         if (estado) {
-            estado.respondio = true; // Marcar que respondió
+            estado.respondio = true;
             
             if (messageText === '1') {
                 await enviarSecuenciaCompleta(userId);
