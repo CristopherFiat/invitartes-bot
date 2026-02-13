@@ -93,9 +93,11 @@ async function enviarMenuPrincipal(userId) {
         await chat.sendStateTyping();
         await sleep(1500);
         await chat.sendMessage(
-            '📋 *Menú Principal*\n\n' +
+            '📋 *MENÚ PRINCIPAL*\n\n' +
+            'Por favor, escriba únicamente el número de la opción que desea elegir y envíelo como mensaje.\n\n' +
             '1️⃣ Explícame sobre las invitaciones\n' +
-            '2️⃣ Quiero hablar con un asesor'
+            '2️⃣ Quiero hablar con un asesor\n\n' +
+            '✍️ Digite solo el número (1 o 2) para continuar.'
         );
         
         console.log(`✅ Menú enviado a: ${userId}`);
@@ -113,7 +115,7 @@ async function enviarSecuenciaCompleta(userId) {
         await chat.sendStateTyping();
         await sleep(1500);
         await chat.sendMessage('😊 Con mucho gusto, ahora le explico ✨');
-        console.log('  ✓ Mensaje 1/9 enviado');
+        console.log('  ✓ Mensaje 1/10 enviado');
         
         // MENSAJE 2 - Características
         await chat.sendStateTyping();
@@ -130,52 +132,45 @@ async function enviarSecuenciaCompleta(userId) {
             '🌍 *Alcance global:* ¿Familiares en el extranjero? Llegan en segundos, sin costos de envío\n\n' +
             '🔄 *Actualizaciones ilimitadas:* ¿Cambió algo? Edita y todos se enteran al instante.'
         );
-        console.log('  ✓ Mensaje 2/9 enviado');
+        console.log('  ✓ Mensaje 2/10 enviado');
         
-        // MENSAJE 3 - Imagen Sobres + Texto + Link
+        // MENSAJE 3 - Imagen Sobres CON caption
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const imgSobres = await MessageMedia.fromUrl(FIREBASE_URLS.imagenSobres);
-            await chat.sendMessage(imgSobres, undefined, {
-                caption: 'Le envío un ejemplo real de nuestras invitaciones:\n\n🔗 *Invitación completa:*\nhttps://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
-            });
-            console.log('  ✓ Mensaje 3/9 enviado (imagen sobres con caption)');
+            const captionSobres = 'Le envío un ejemplo real de nuestras invitaciones ✨\n\n🔗 Invitación completa:\nhttps://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/';
+            await chat.sendMessage(imgSobres, { caption: captionSobres });
+            console.log('  ✓ Mensaje 3/10 enviado (imagen sobres CON caption)');
         } catch (error) {
-            console.log('  ⚠️ Error con imagen sobres, enviando texto separado');
-            await chat.sendMessage(
-                'Le envío un ejemplo real de nuestras invitaciones:\n\n🔗 *Invitación completa:*\nhttps://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
-            );
+            console.log('  ⚠️ Error con imagen sobres:', error.message);
+            await chat.sendMessage('Le envío un ejemplo real de nuestras invitaciones ✨\n\n🔗 Invitación completa:\nhttps://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/');
         }
         
-        // MENSAJE 4 - Imagen Lia + Texto + Link
+        // MENSAJE 4 - Imagen Lia CON caption
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const imgLia = await MessageMedia.fromUrl(FIREBASE_URLS.imagenLia);
-            await chat.sendMessage(imgLia, undefined, {
-                caption: 'Le comparto otra muestra real 💎\n\n📲 Abre la invitación aquí:\nhttps://invitartes.com/invitacion-xv-anos-lia-haro/'
-            });
-            console.log('  ✓ Mensaje 4/9 enviado (imagen Lia con caption)');
+            const captionLia = 'Le comparto otra muestra real 💎\n\n📲 Abre la invitación aquí:\nhttps://invitartes.com/invitacion-xv-anos-lia-haro/';
+            await chat.sendMessage(imgLia, { caption: captionLia });
+            console.log('  ✓ Mensaje 4/10 enviado (imagen Lia CON caption)');
         } catch (error) {
-            console.log('  ⚠️ Error con imagen Lia, enviando texto separado');
-            await chat.sendMessage(
-                'Le comparto otra muestra real 💎\n\n📲 Abre la invitación aquí:\nhttps://invitartes.com/invitacion-xv-anos-lia-haro/'
-            );
+            console.log('  ⚠️ Error con imagen Lia:', error.message);
+            await chat.sendMessage('Le comparto otra muestra real 💎\n\n📲 Abre la invitación aquí:\nhttps://invitartes.com/invitacion-xv-anos-lia-haro/');
         }
         
-        // MENSAJE 5 - Video con texto
+        // MENSAJE 5 - Video CON caption
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const videoMedia = await MessageMedia.fromUrl(FIREBASE_URLS.video);
-            await chat.sendMessage(videoMedia, undefined, {
-                caption: 'Le envío un videito de cómo funciona nuestro sistema para gestionar invitaciones digitales ✨'
-            });
-            console.log('  ✓ Mensaje 5/9 enviado (video con caption)');
+            const captionVideo = 'Le envío un video de cómo funciona nuestro sistema para gestionar invitaciones digitales ✨';
+            await chat.sendMessage(videoMedia, { caption: captionVideo });
+            console.log('  ✓ Mensaje 5/10 enviado (video CON caption)');
         } catch (error) {
-            console.log('  ⚠️ Error enviando video');
-            await chat.sendMessage('Le envío un videito de cómo funciona nuestro sistema para gestionar invitaciones digitales ✨');
+            console.log('  ⚠️ Error enviando video:', error.message);
+            await chat.sendMessage('Le envío un video de cómo funciona nuestro sistema para gestionar invitaciones digitales ✨');
         }
         
         // MENSAJE 6 - PDF
@@ -183,12 +178,11 @@ async function enviarSecuenciaCompleta(userId) {
         await sleep(2000);
         try {
             const pdfMedia = await MessageMedia.fromUrl(FIREBASE_URLS.pdfPaquetes);
-            await chat.sendMessage(pdfMedia, undefined, {
-                caption: 'Le comento que tenemos 3 paquetes diseñados para adaptarse a diferentes necesidades y presupuestos 🎯\n\nEn el PDF adjunto encontrará las características detalladas de cada uno.'
-            });
-            console.log('  ✓ Mensaje 6/9 enviado (PDF)');
+            const captionPdf = 'Le comento que tenemos 3 paquetes diseñados para adaptarse a diferentes necesidades y presupuestos 🎯\n\nEn el PDF adjunto encontrará las características detalladas de cada uno.';
+            await chat.sendMessage(pdfMedia, { caption: captionPdf });
+            console.log('  ✓ Mensaje 6/10 enviado (PDF)');
         } catch (error) {
-            console.log('  ⚠️ Error enviando PDF');
+            console.log('  ⚠️ Error enviando PDF:', error.message);
         }
         
         // MENSAJE 7 - Audio
@@ -200,9 +194,9 @@ async function enviarSecuenciaCompleta(userId) {
         try {
             const audioMedia = await MessageMedia.fromUrl(FIREBASE_URLS.audio);
             await chat.sendMessage(audioMedia);
-            console.log('  ✓ Mensaje 7/9 enviado (audio)');
+            console.log('  ✓ Mensaje 7/10 enviado (audio)');
         } catch (error) {
-            console.log('  ⚠️ Error enviando audio');
+            console.log('  ⚠️ Error enviando audio:', error.message);
         }
         
         // MENSAJE 8 - Planes
@@ -220,7 +214,7 @@ async function enviarSecuenciaCompleta(userId) {
             'Todo Deluxe + íconos animados, acceso privado, dashboard, invitaciones ilimitadas, fecha límite, mensajes editables y contador de asistencias en vivo.\n' +
             '👉 Ejemplo: https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/'
         );
-        console.log('  ✓ Mensaje 8/9 enviado');
+        console.log('  ✓ Mensaje 8/10 enviado');
         
         // MENSAJE 9 - Proceso de inicio
         await chat.sendStateTyping();
@@ -238,7 +232,7 @@ async function enviarSecuenciaCompleta(userId) {
             'Titular: ALVAREZ GRANDA, GUIDO CRISTOPHER\n\n' +
             'El saldo restante podrá ser cancelado en el momento de la entrega de sus invitaciones. ✨'
         );
-        console.log('  ✓ Mensaje 9/9 enviado');
+        console.log('  ✓ Mensaje 9/10 enviado');
         
         // MENSAJE 10 - Cierre
         await chat.sendStateTyping();
