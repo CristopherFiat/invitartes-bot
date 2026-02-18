@@ -18,7 +18,7 @@ const FIREBASE_URLS = {
 };
 
 const userStates = new Map();
-const processingUsers = new Map(); // Cambio: Map en vez de Set para guardar timestamp
+const processingUsers = new Map();
 
 const client = new Client({
     authStrategy: new LocalAuth({ 
@@ -64,12 +64,11 @@ client.on('ready', async () => {
         console.log('⚠️ No se pudo obtener info del bot');
     }
     
-    // Limpiar usuarios bloqueados cada 10 minutos
     setInterval(() => {
         const now = Date.now();
         let cleaned = 0;
         for (const [userId, timestamp] of processingUsers.entries()) {
-            if (now - timestamp > 5 * 60 * 1000) { // 5 minutos
+            if (now - timestamp > 5 * 60 * 1000) {
                 processingUsers.delete(userId);
                 cleaned++;
             }
@@ -87,29 +86,13 @@ client.on('disconnected', (reason) => {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-function esMensajeDeInicio(text) {
-    const triggers = [
-        'hola', 'hey', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches',
-        'buen dia', 'buena tarde', 'buena noche', 'ola', 'holis', 'saludos',
-        'invitacion', 'invitación', 'boda', 'xv años', 'quinceaños',
-        'baby shower', 'cumpleaños', 'evento', 'información', 'informacion',
-        'info', 'precio', 'costo', 'cuanto', 'quiero', 'necesito', 'quisiera'
-    ];
-    const textLower = text.toLowerCase().trim();
-    return triggers.some(trigger => textLower.includes(trigger));
-}
-
-async function enviarMenuPrincipal(userId) {
+async function enviarMenuSolo(userId) {
     try {
         const chat = await client.getChatById(userId);
-        console.log(`📤 Enviando menú principal a: ${userId}`);
+        console.log(`📤 Enviando SOLO menú a: ${userId}`);
         
         await chat.sendStateTyping();
-        await sleep(1500);
-        await chat.sendMessage('¿Cómo está? 😊 Con gusto le ayudamos ✨');
-        
-        await chat.sendStateTyping();
-        await sleep(1500);
+        await sleep(1000);
         await chat.sendMessage(
             '📋 *MENÚ PRINCIPAL*\n\n' +
             'Por favor, escriba únicamente el número de la opción que desea elegir y envíelo como mensaje.\n\n' +
@@ -262,7 +245,6 @@ async function enviarSecuenciaCompleta(userId) {
             estado.seguimiento2Enviado = false;
         }
         
-        // SEGUIMIENTO 1: Después de 7 minutos
         setTimeout(async () => {
             const estadoActual = userStates.get(userId);
             if (estadoActual && estadoActual.secuenciaCompleta && !estadoActual.respondioPostSecuencia && !estadoActual.seguimiento1Enviado) {
@@ -273,7 +255,6 @@ async function enviarSecuenciaCompleta(userId) {
                     estadoActual.seguimiento1Enviado = true;
                     console.log(`📞 Seguimiento 1 enviado a: ${userId}`);
                     
-                    // SEGUIMIENTO 2: Después de otros 7 minutos (total 14 min desde el final de la secuencia)
                     setTimeout(async () => {
                         const estadoFinal = userStates.get(userId);
                         if (estadoFinal && !estadoFinal.respondioPostSecuencia && estadoFinal.seguimiento1Enviado && !estadoFinal.seguimiento2Enviado) {
@@ -296,13 +277,13 @@ async function enviarSecuenciaCompleta(userId) {
                                 console.log(`⚠️ ${userId}: Error seguimiento 2`);
                             }
                         }
-                    }, 7 * 60 * 1000); // 7 minutos adicionales
+                    }, 7 * 60 * 1000);
                     
                 } catch (error) {
                     console.log(`⚠️ ${userId}: Error seguimiento 1`);
                 }
             }
-        }, 7 * 60 * 1000); // 7 minutos
+        }, 7 * 60 * 1000);
         
         console.log(`✅ Secuencia completa enviada a: ${userId}\n`);
         
@@ -335,19 +316,6 @@ async function enviarMensajeAsesor(userId) {
     }
 }
 
-async function enviarRespuestaPorDefecto(userId, messageText) {
-    try {
-        const chat = await client.getChatById(userId);
-        await chat.sendMessage(
-            'Disculpe, no entendí su mensaje. 😊\n\n' +
-            'Por favor escriba *"Hola"* o *"Información"* para comenzar, o envíe *1* o *2* si ya vio el menú.'
-        );
-        console.log(`💬 Respuesta por defecto a ${userId}: "${messageText}"`);
-    } catch (error) {
-        console.error(`❌ Error respuesta defecto ${userId}:`, error.message);
-    }
-}
-
 client.on('message', async (message) => {
     try {
         if (message.fromMe) return;
@@ -360,11 +328,10 @@ client.on('message', async (message) => {
         
         console.log(`📩 ${userId}: "${messageText}"`);
         
-        // Verificar si está bloqueado por timeout
         if (processingUsers.has(userId)) {
             const timestamp = processingUsers.get(userId);
             const elapsed = Date.now() - timestamp;
-            if (elapsed < 5 * 60 * 1000) { // Menos de 5 min
+            if (elapsed < 5 * 60 * 1000) {
                 console.log(`⏭️ ${userId} procesando (${Math.round(elapsed/1000)}s)`);
                 return;
             } else {
@@ -375,57 +342,107 @@ client.on('message', async (message) => {
         
         let estado = userStates.get(userId);
         
-        // Mensaje de inicio
-        if (!estado && esMensajeDeInicio(messageText)) {
+        // Si escribe 1 o 2 en cualquier momento
+        if (messageText === '1') {
             processingUsers.set(userId, Date.now());
-            userStates.set(userId, {
-                menuEnviado: true,
-                secuenciaCompleta: false,
-                respondioPostSecuencia: false,
-                seguimiento1Enviado: false,
-                seguimiento2Enviado: false,
-                timestamp: new Date()
-            });
-            enviarMenuPrincipal(userId).catch(err => {
+            if (!estado) {
+                userStates.set(userId, {
+                    menuEnviado: true,
+                    secuenciaCompleta: false,
+                    respondioPostSecuencia: false,
+                    seguimiento1Enviado: false,
+                    seguimiento2Enviado: false,
+                    intentoMenu: 0,
+                    conversacionLibre: false
+                });
+            }
+            enviarSecuenciaCompleta(userId).catch(err => {
                 console.error(`❌ ${userId}:`, err.message);
                 processingUsers.delete(userId);
             });
             return;
         }
         
-        // Opciones del menú
-        if (estado) {
-            if (estado.secuenciaCompleta) {
-                estado.respondioPostSecuencia = true;
-                console.log(`✅ ${userId} respondió post-secuencia`);
-            }
-            
-            if (messageText === '1') {
-                processingUsers.set(userId, Date.now());
-                enviarSecuenciaCompleta(userId).catch(err => {
-                    console.error(`❌ ${userId}:`, err.message);
-                    processingUsers.delete(userId);
+        if (messageText === '2') {
+            processingUsers.set(userId, Date.now());
+            if (!estado) {
+                userStates.set(userId, {
+                    menuEnviado: true,
+                    conversacionLibre: true
                 });
-                return;
+            } else {
+                estado.conversacionLibre = true;
             }
-            
-            if (messageText === '2') {
-                processingUsers.set(userId, Date.now());
-                enviarMensajeAsesor(userId).catch(err => {
-                    console.error(`❌ ${userId}:`, err.message);
-                    processingUsers.delete(userId);
-                });
-                return;
-            }
-            
-            // Si tiene estado pero no es 1 o 2, permitir conversación libre
+            enviarMensajeAsesor(userId).catch(err => {
+                console.error(`❌ ${userId}:`, err.message);
+                processingUsers.delete(userId);
+            });
+            return;
+        }
+        
+        // Primera vez que escribe (sin estado)
+        if (!estado) {
+            processingUsers.set(userId, Date.now());
+            userStates.set(userId, {
+                menuEnviado: true,
+                intentoMenu: 1,
+                conversacionLibre: false,
+                secuenciaCompleta: false
+            });
+            enviarMenuSolo(userId).catch(err => {
+                console.error(`❌ ${userId}:`, err.message);
+                processingUsers.delete(userId);
+            });
+            return;
+        }
+        
+        // Ya tiene estado
+        if (estado.secuenciaCompleta) {
+            estado.respondioPostSecuencia = true;
+            console.log(`✅ ${userId} conversación libre post-secuencia`);
+            return;
+        }
+        
+        if (estado.conversacionLibre) {
             console.log(`💬 ${userId} conversación libre`);
             return;
         }
         
-        // Mensaje no reconocido
-        console.log(`❓ ${userId} mensaje no reconocido`);
-        await enviarRespuestaPorDefecto(userId, messageText);
+        // Segundo intento (no escribió 1 o 2)
+        if (estado.intentoMenu === 1) {
+            processingUsers.set(userId, Date.now());
+            estado.intentoMenu = 2;
+            try {
+                await chat.sendMessage(
+                    'Disculpe, no entendí su mensaje. 😊\n\n' +
+                    'Por favor escriba *1 o 2* para comenzar.'
+                );
+                console.log(`📝 ${userId}: Recordatorio 1 o 2`);
+            } catch (error) {
+                console.error(`❌ ${userId}:`, error.message);
+            } finally {
+                processingUsers.delete(userId);
+            }
+            return;
+        }
+        
+        // Tercer intento (sigue sin escribir 1 o 2)
+        if (estado.intentoMenu === 2) {
+            processingUsers.set(userId, Date.now());
+            estado.conversacionLibre = true;
+            try {
+                await chat.sendMessage(
+                    'Parece que necesitas ayuda personalizada.\n' +
+                    'Te voy a comunicar con un asesor 👩‍💻'
+                );
+                console.log(`👤 ${userId}: Derivado a asesor humano`);
+            } catch (error) {
+                console.error(`❌ ${userId}:`, error.message);
+            } finally {
+                processingUsers.delete(userId);
+            }
+            return;
+        }
         
     } catch (error) {
         console.error('❌ Error handler:', error.message);
@@ -577,7 +594,7 @@ app.get('/', async (req, res) => {
 });
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v3.0 (Optimizado)');
+    console.log('\n🤖 INVITARTES BOT v3.1 (Flujo Progresivo)');
     console.log(`🌐 Puerto: ${PORT}`);
     console.log('🚀 Inicializando WhatsApp...\n');
 });
