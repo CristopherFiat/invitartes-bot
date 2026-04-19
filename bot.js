@@ -12,7 +12,7 @@ let botPhoneNumber = '';
 const FIREBASE_URLS = {
     audio:        'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
     video:        'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/Promooficialfinal%202%20(3).mp4?alt=media',
-    imagenSobres: 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/sobres.webp?alt=media',
+    imagenSobres: 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/da.webp?alt=media&token=687cea05-0f0a-4d07-82c7-fd28cd0297fe',
     imagenLia:    'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/lia.webp?alt=media'
 };
 
@@ -61,7 +61,6 @@ client.on('ready', async () => {
         console.log('⚠️ No se pudo obtener info del bot');
     }
 
-    // Limpieza automática cada 10 min
     setInterval(() => {
         const now = Date.now();
         let cleaned = 0;
@@ -79,45 +78,26 @@ client.on('disconnected', (reason) => {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// ─────────────────────────────────────────────────
-// DETECCIÓN DE IDIOMA POR CÓDIGO DE PAÍS
-// ─────────────────────────────────────────────────
 const SPANISH_COUNTRY_CODES = [
-    '54',  // Argentina
-    '591', // Bolivia
-    '56',  // Chile
-    '57',  // Colombia
-    '506', // Costa Rica
-    '53',  // Cuba
-    '1809','1829','1849', // República Dominicana
-    '593', // Ecuador
-    '503', // El Salvador
-    '240', // Guinea Ecuatorial
-    '502', // Guatemala
-    '504', // Honduras
-    '52',  // México
-    '505', // Nicaragua
-    '507', // Panamá
-    '595', // Paraguay
-    '51',  // Perú
-    '34',  // España
-    '598', // Uruguay
-    '58',  // Venezuela
-    '1787','1939', // Puerto Rico
+    '593', '591', '506', '503', '240', '502', '504', '505', '507', '595', '598',
+    '1787', '1809', '1829', '1849', '1939',
+    '54', '56', '57', '53', '52', '51', '34', '58',
 ];
 
 function esHispanohablante(userId) {
-    // userId tiene formato: 593XXXXXXXXX@c.us
-    const numero = userId.replace('@c.us', '');
-    for (const codigo of SPANISH_COUNTRY_CODES) {
-        if (numero.startsWith(codigo)) return true;
+    const numero = userId.replace('@c.us', '').replace(/^\+/, '');
+    const codesOrdenados = [...SPANISH_COUNTRY_CODES].sort((a, b) => b.length - a.length);
+    
+    for (const codigo of codesOrdenados) {
+        if (numero.startsWith(codigo)) {
+            console.log(`🌍 País detectado: +${codigo} → Español`);
+            return true;
+        }
     }
+    console.log(`🌍 Código no hispanohablante → Inglés (número: ${numero.substring(0, 4)}...)`);
     return false;
 }
 
-// ─────────────────────────────────────────────────
-// MENÚ INICIAL
-// ─────────────────────────────────────────────────
 async function enviarMenu(userId) {
     try {
         const chat = await client.getChatById(userId);
@@ -149,9 +129,6 @@ async function enviarMenu(userId) {
     }
 }
 
-// ─────────────────────────────────────────────────
-// SECUENCIA OPCIÓN 1
-// ─────────────────────────────────────────────────
 async function enviarSecuencia(userId) {
     try {
         const chat = await client.getChatById(userId);
@@ -161,7 +138,6 @@ async function enviarSecuencia(userId) {
         const form = esEspanol ? FORM_ES : FORM_EN;
         console.log(`📤 Iniciando secuencia para: ${userId} | Idioma: ${esEspanol ? 'ES' : 'EN'}`);
 
-        // 1. Presentación + funciones (fusionado)
         await chat.sendStateTyping();
         await sleep(1500);
         if (esEspanol) {
@@ -171,7 +147,7 @@ async function enviarSecuencia(userId) {
                 '🎨 Crea invitaciones ilimitadas y personalizadas\n' +
                 '🎵 Con música, fotos y videos incluidos\n' +
                 '💬 Recibe y ve todos los mensajes de tus invitados\n' +
-                '📸 Descarga las fotos directo desde el panel\n' +
+                '📸 Tus invitados pueden subir sus fotos directamente desde la invitación, ¡creando un álbum compartido en tiempo real!\n' +
                 '✅ Confirmaciones en tiempo real\n' +
                 '🌍 Llega a todo el mundo en segundos'
             );
@@ -182,50 +158,47 @@ async function enviarSecuencia(userId) {
                 '🎨 Create unlimited and personalized invitations\n' +
                 '🎵 With music, photos and videos included\n' +
                 '💬 Receive and view all messages from your guests\n' +
-                '📸 Download photos directly from the panel\n' +
+                '📸 Your guests can upload their photos directly from the invitation, creating a shared album in real time!\n' +
                 '✅ Real-time confirmations\n' +
                 '🌍 Reaches anywhere in the world in seconds'
             );
         }
         console.log(`  ✓ ${userId}: 1 — Presentación + funciones`);
 
-        // 2. Foto Boda Karolina & Erick
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const img1 = await MessageMedia.fromUrl(FIREBASE_URLS.imagenSobres);
             await chat.sendMessage(img1, {
                 caption: esEspanol
-                    ? '💍 *Ejemplo real — Boda Karolina & Erick*\n\n🔗 https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
-                    : '💍 *Real example — Wedding Karolina & Erick*\n\n🔗 https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
+                    ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\nEl amor más bonito merece ser celebrado de la manera más especial. Te invitamos a ser parte de este momento único que guardaremos en el corazón para siempre. 💫\n\nConfirma tu asistencia dentro de la invitación 👇\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                    : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\nThe most beautiful love deserves to be celebrated in the most special way. We invite you to be part of this unique moment we will keep in our hearts forever. 💫\n\nConfirm your attendance inside the invitation 👇\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
             });
         } catch {
             await chat.sendMessage(esEspanol
-                ? '💍 *Ejemplo real — Boda Karolina & Erick:*\n🔗 https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
-                : '💍 *Real example — Wedding Karolina & Erick:*\n🔗 https://invitartes.com/invitacion-a-la-boda-de-karolina-y-erick-muestra/'
+                ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
             );
         }
         console.log(`  ✓ ${userId}: 3 — Foto Boda`);
 
-        // 4. Foto XV Años Lia
         await chat.sendStateTyping();
         await sleep(2000);
         try {
             const img2 = await MessageMedia.fromUrl(FIREBASE_URLS.imagenLia);
             await chat.sendMessage(img2, {
                 caption: esEspanol
-                    ? '🌟 *Ejemplo real — XV Años Lia*\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
-                    : '🌟 *Real example — Sweet 15 Lia*\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                    ? '🌸 *Ejemplo real 2 — Quinceaños* 🌸\n\n🌟 Hay momentos que marcan para siempre... los XV años son uno de ellos. 🎀\n\nUna noche mágica, llena de ilusión, luz y recuerdos que duran toda la vida. ✨\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                    : '🌸 *Real example 2 — Sweet 15* 🌸\n\n🌟 There are moments that mark you forever... a Sweet 15 is one of them. 🎀\n\nA magical night, full of dreams, light and memories that last a lifetime. ✨\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
             });
         } catch {
             await chat.sendMessage(esEspanol
-                ? '🌟 *Ejemplo real — XV Años Lia:*\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
-                : '🌟 *Real example — Sweet 15 Lia:*\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                ? '🌸 *Ejemplo real 2 — Quinceaños* 🌸\n\n🌟 Hay momentos que marcan para siempre... 🎀\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                : '🌸 *Real example 2 — Sweet 15* 🌸\n\n🌟 There are moments that mark you forever... 🎀\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
             );
         }
         console.log(`  ✓ ${userId}: 4 — Foto XV Años`);
 
-        // 5. Link plataforma y características
         await chat.sendStateTyping();
         await sleep(2000);
         await chat.sendMessage(
@@ -235,7 +208,6 @@ async function enviarSecuencia(userId) {
         );
         console.log(`  ✓ ${userId}: 5 — Link plataforma`);
 
-        // 6. Intro audio + Audio (solo español)
         if (esEspanol) {
             await chat.sendStateTyping();
             await sleep(1500);
@@ -252,7 +224,6 @@ async function enviarSecuencia(userId) {
             console.log(`  ✓ ${userId}: 7 — Audio`);
         }
 
-        // 8. Paquetes + enlace características
         await chat.sendStateTyping();
         await sleep(2000);
         if (esEspanol) {
@@ -284,14 +255,20 @@ async function enviarSecuencia(userId) {
         }
         console.log(`  ✓ ${userId}: 8 — Paquetes`);
 
-        // 9. Formulario final
         await chat.sendStateTyping();
         await sleep(2000);
         if (esEspanol) {
             await chat.sendMessage(
                 'Para comenzar, responde estas *5 preguntas rápidas* y un diseñador se pondrá en contacto contigo para continuar el proceso:\n\n' +
                 '📝 ' + form + '\n\n' +
-                '¡Estoy aquí si tienes alguna duda! 😊'
+                'Una vez que lo llenes, te enviaremos nuestros datos de pago. Iniciamos con un abono de *$30* y el saldo restante lo puede pagar al momento de la entrega de sus invitaciones. 💳'
+            );
+            await sleep(1500);
+            await chat.sendStateTyping();
+            await sleep(1000);
+            await chat.sendMessage(
+                'Por favor confírmanos una vez que hayas llenado el formulario para verificar que nos ha llegado correctamente. ✅\n\n' +
+                '¡Cualquier pregunta con gusto te ayudamos! 😊'
             );
         } else {
             await chat.sendMessage(
@@ -302,7 +279,6 @@ async function enviarSecuencia(userId) {
         }
         console.log(`  ✓ ${userId}: 9 — Formulario`);
 
-        // Actualizar estado
         const estado = userStates.get(userId);
         if (estado) {
             estado.secuenciaCompleta    = true;
@@ -313,7 +289,6 @@ async function enviarSecuencia(userId) {
         }
         console.log(`✅ Secuencia completa: ${userId}\n`);
 
-        // ── Seguimiento 1 — 7 min ──
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado) {
@@ -329,7 +304,6 @@ async function enviarSecuencia(userId) {
             }
         }, 7 * 60 * 1000);
 
-        // ── Seguimiento 2 — 14 min ──
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado) {
@@ -345,7 +319,6 @@ async function enviarSecuencia(userId) {
             }
         }, 14 * 60 * 1000);
 
-        // ── Seguimiento 24 horas ──
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento24Enviado) {
@@ -368,9 +341,6 @@ async function enviarSecuencia(userId) {
     }
 }
 
-// ─────────────────────────────────────────────────
-// OPCIÓN 2 — ASESOR
-// ─────────────────────────────────────────────────
 async function enviarMensajeAsesor(userId) {
     try {
         const chat = await client.getChatById(userId);
@@ -390,9 +360,6 @@ async function enviarMensajeAsesor(userId) {
     }
 }
 
-// ─────────────────────────────────────────────────
-// HANDLER DE MENSAJES
-// ─────────────────────────────────────────────────
 client.on('message', async (message) => {
     try {
         if (message.fromMe) return;
@@ -403,7 +370,6 @@ client.on('message', async (message) => {
         const messageText = message.body.trim();
         console.log(`📩 ${userId}: "${messageText}"`);
 
-        // Protección duplicados
         if (processingUsers.has(userId)) {
             const elapsed = Date.now() - processingUsers.get(userId);
             if (elapsed < 5 * 60 * 1000) {
@@ -415,7 +381,6 @@ client.on('message', async (message) => {
 
         let estado = userStates.get(userId);
 
-        // ── Opción 1 ──
         if (messageText === '1') {
             processingUsers.set(userId, Date.now());
             if (!estado) {
@@ -437,7 +402,6 @@ client.on('message', async (message) => {
             return;
         }
 
-        // ── Opción 2 ──
         if (messageText === '2') {
             processingUsers.set(userId, Date.now());
             if (!estado) {
@@ -452,7 +416,6 @@ client.on('message', async (message) => {
             return;
         }
 
-        // ── Usuario nuevo ──
         if (!estado) {
             processingUsers.set(userId, Date.now());
             userStates.set(userId, {
@@ -468,20 +431,17 @@ client.on('message', async (message) => {
             return;
         }
 
-        // ── Post-secuencia ──
         if (estado.secuenciaCompleta) {
             estado.respondioPostSecuencia = true;
             console.log(`✅ ${userId} respondió — seguimientos cancelados`);
             return;
         }
 
-        // ── Conversación libre ──
         if (estado.conversacionLibre) {
             console.log(`💬 ${userId} conversación libre`);
             return;
         }
 
-        // ── Segundo intento ──
         if (estado.intentoMenu === 1) {
             processingUsers.set(userId, Date.now());
             estado.intentoMenu = 2;
@@ -500,7 +460,6 @@ client.on('message', async (message) => {
             return;
         }
 
-        // ── Tercer intento — derivar a asesor ──
         if (estado.intentoMenu === 2) {
             processingUsers.set(userId, Date.now());
             estado.conversacionLibre = true;
@@ -524,9 +483,6 @@ client.on('message', async (message) => {
     }
 });
 
-// ─────────────────────────────────────────────────
-// SERVIDOR WEB
-// ─────────────────────────────────────────────────
 app.get('/', async (req, res) => {
     if (clientReady) {
         res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bot Conectado</title>
@@ -549,7 +505,7 @@ app.get('/', async (req, res) => {
 });
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.1');
+    console.log('\n🤖 INVITARTES BOT v4.2');
     console.log(`🌐 Puerto: ${PORT}`);
     console.log('🚀 Inicializando WhatsApp...\n');
 });
