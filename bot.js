@@ -103,21 +103,17 @@ async function enviarMenu(userId, esEspanol) {
         const chat = await client.getChatById(userId);
         await chat.sendStateTyping();
         await sleep(1000);
-        if (esEspanol) {
-            await chat.sendMessage(
-                '¿En qué te puedo ayudar hoy?\n\n' +
-                '1️⃣ Quiero conocer las invitaciones digitales\n' +
-                '2️⃣ Prefiero hablar con un asesor\n\n' +
-                '✍️ Escribe solo el número *1 o 2* para continuar.'
-            );
-        } else {
-            await chat.sendMessage(
-                'How can I help you today?\n\n' +
-                '1️⃣ I want to learn about digital invitations\n' +
-                '2️⃣ I prefer to speak with an advisor\n\n' +
-                '✍️ Type only the number *1 or 2* to continue.'
-            );
-        }
+        await chat.sendMessage(
+            esEspanol
+                ? '¿En qué te puedo ayudar hoy?\n\n' +
+                  '1️⃣ Quiero conocer las invitaciones digitales\n' +
+                  '2️⃣ Prefiero hablar con un asesor\n\n' +
+                  '✍️ Escribe solo el número *1 o 2* para continuar.'
+                : 'How can I help you today?\n\n' +
+                  '1️⃣ I want to learn about digital invitations\n' +
+                  '2️⃣ I prefer to speak with an advisor\n\n' +
+                  '✍️ Type only the number *1 or 2* to continue.'
+        );
         console.log(`✅ Menú enviado a: ${userId}`);
     } catch (err) {
         console.error(`❌ Error menú ${userId}:`, err.message);
@@ -134,7 +130,6 @@ async function enviarSecuencia(userId, esEspanol) {
         const form = esEspanol ? FORM_ES : FORM_EN;
         console.log(`📤 Iniciando secuencia: ${userId} | ${esEspanol ? 'ES 🇪🇸' : 'EN 🇺🇸'}`);
 
-        // 1 — Presentación
         await chat.sendStateTyping();
         await sleep(1500);
         await chat.sendMessage(
@@ -158,7 +153,6 @@ async function enviarSecuencia(userId, esEspanol) {
         );
         console.log(`  ✓ ${userId}: 1 — Presentación`);
 
-        // 2 — Imagen boda
         await chat.sendStateTyping();
         await sleep(2000);
         try {
@@ -177,7 +171,6 @@ async function enviarSecuencia(userId, esEspanol) {
         }
         console.log(`  ✓ ${userId}: 2 — Imagen Boda`);
 
-        // 3 — Imagen XV años
         await chat.sendStateTyping();
         await sleep(2000);
         try {
@@ -196,7 +189,6 @@ async function enviarSecuencia(userId, esEspanol) {
         }
         console.log(`  ✓ ${userId}: 3 — Imagen XV Años`);
 
-        // 4 — Link plataforma
         await chat.sendStateTyping();
         await sleep(2000);
         await chat.sendMessage(
@@ -206,7 +198,6 @@ async function enviarSecuencia(userId, esEspanol) {
         );
         console.log(`  ✓ ${userId}: 4 — Link plataforma`);
 
-        // 5 — Audio (solo español)
         if (esEspanol) {
             await chat.sendStateTyping();
             await sleep(1500);
@@ -221,7 +212,6 @@ async function enviarSecuencia(userId, esEspanol) {
             console.log(`  ✓ ${userId}: 5 — Audio`);
         }
 
-        // 6 — Paquetes
         await chat.sendStateTyping();
         await sleep(2000);
         await chat.sendMessage(
@@ -251,7 +241,6 @@ async function enviarSecuencia(userId, esEspanol) {
         );
         console.log(`  ✓ ${userId}: 6 — Paquetes`);
 
-        // 7 — Formulario
         await chat.sendStateTyping();
         await sleep(2000);
         if (esEspanol) {
@@ -286,7 +275,6 @@ async function enviarSecuencia(userId, esEspanol) {
         }
         console.log(`✅ Secuencia completa: ${userId}\n`);
 
-        // Seguimiento 1 — 7 minutos
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado) {
@@ -302,7 +290,6 @@ async function enviarSecuencia(userId, esEspanol) {
             }
         }, 7 * 60 * 1000);
 
-        // Seguimiento 2 — 14 minutos
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado) {
@@ -318,7 +305,6 @@ async function enviarSecuencia(userId, esEspanol) {
             }
         }, 14 * 60 * 1000);
 
-        // Seguimiento 3 — 24 horas
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento24Enviado) {
@@ -385,6 +371,7 @@ client.on('message', async (message) => {
             processingUsers.set(userId, Date.now());
             userStates.set(userId, {
                 paso: 'eligiendo_idioma',
+                intentoIdioma: 1,
                 esEspanol: null,
                 secuenciaCompleta: false,
                 respondioPostSecuencia: false,
@@ -412,9 +399,29 @@ client.on('message', async (message) => {
                     console.error(`❌ ${userId}:`, err.message);
                     processingUsers.delete(userId);
                 });
-            } else {
-                // Si escribe otra cosa, repetir selector
+            } else if (estado.intentoIdioma >= 2) {
+                // Después de 2 intentos fallidos → asesor en español por defecto
                 processingUsers.set(userId, Date.now());
+                estado.conversacionLibre = true;
+                estado.paso = 'libre';
+                estado.esEspanol = true;
+                console.log(`⚠️ ${userId} no eligió idioma → conectando con asesor`);
+                try {
+                    const c = await client.getChatById(userId);
+                    await c.sendStateTyping();
+                    await sleep(800);
+                    await c.sendMessage(
+                        '👩🏻‍💼 Parece que necesitas ayuda personalizada.\n\nEn unos momentos uno de nuestros asesores se pondrá en contacto contigo. 🙏\n\nSerá un placer atenderte. ✨'
+                    );
+                } catch (err) {
+                    console.error(`❌ ${userId}:`, err.message);
+                } finally {
+                    processingUsers.delete(userId);
+                }
+            } else {
+                // Primer intento fallido → repetir selector
+                processingUsers.set(userId, Date.now());
+                estado.intentoIdioma = (estado.intentoIdioma || 1) + 1;
                 enviarSelectorIdioma(userId).catch(err => {
                     console.error(`❌ ${userId}:`, err.message);
                     processingUsers.delete(userId);
@@ -517,7 +524,7 @@ app.get('/health', (req, res) => {
 });
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.4');
+    console.log('\n🤖 INVITARTES BOT v4.5');
     console.log(`🌐 Puerto: ${PORT}`);
     console.log('🚀 Inicializando WhatsApp...\n');
 });
