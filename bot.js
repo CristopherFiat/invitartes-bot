@@ -238,25 +238,25 @@ async function enviarSecuencia(userId) {
         await chat.sendMessage(
             esEspanol
                 ? '🎁 *Nuestros Paquetes*\n\n' +
-                  '*CLÁSICO — $100 USD*\n' +
-                  'Invitación completa basada en plantilla, colores y animaciones personalizadas. Incluye música, Maps, cuenta regresiva, regalos, Google Calendar y más.\n' +
+                  '*ESSENTIAL — $85*\n' +
+                  'Basado en plantilla, sencillo y bonito.\n' +
                   '👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*PREMIUM — $175 USD* ⭐ _(Más popular)_\n' +
-                  'Diseño completamente personalizado, invitaciones ilimitadas, plataforma privada con dashboard, QR, exportar PDF, hospedaje, mesa y canción en tiempo real. Hasta 2 idiomas.\n' +
+                  '*DELUXE — $105*\n' +
+                  'Diseño personalizado + imágenes y plataforma de envíos.\n' +
                   '👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*PRESTIGE — $575 USD* 👑 _(Máximo nivel)_\n' +
-                  'Página diseñada desde cero, invitaciones ilimitadas + hasta 4 idiomas, dominio propio opcional, secciones ilimitadas y animación de apertura a medida.\n' +
+                  '*ELITE — $130* 👑\n' +
+                  'Todo lo del Deluxe + invitaciones ilimitadas, íconos animados, fecha máxima de confirmación y más.\n' +
                   '👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
                   '💳 _Pago único · Sin suscripción_'
                 : '🎁 *Our Packages*\n\n' +
-                  '*CLASSIC — $100 USD*\n' +
-                  'Complete template-based invitation with personalized colors and animations. Includes music, Maps, countdown, gifts, Google Calendar and more.\n' +
+                  '*ESSENTIAL — $85*\n' +
+                  'Template-based, simple and beautiful.\n' +
                   '👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*PREMIUM — $175 USD* ⭐ _(Most popular)_\n' +
-                  'Fully custom design, unlimited invitations, private platform with dashboard, QR, PDF export, hosting, seating chart and real-time song. Up to 2 languages.\n' +
+                  '*DELUXE — $105*\n' +
+                  'Custom design + photos and sending platform.\n' +
                   '👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*PRESTIGE — $575 USD* 👑 _(Maximum level)_\n' +
-                  'Page designed from scratch, unlimited invitations + up to 4 languages, optional custom domain, unlimited sections and custom opening animation.\n' +
+                  '*ELITE — $130* 👑\n' +
+                  'Everything in Deluxe + unlimited invitations, animated icons, max confirmation date and more.\n' +
                   '👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
                   '💳 _One-time payment · No subscription_'
         );
@@ -332,8 +332,8 @@ async function enviarSecuencia(userId) {
                 try {
                     await chat.sendMessage(
                         esEspanol
-                            ? '¡Hola! 🌸 Soy *Carolina* de *Invitartes*.\n\nQuería recordarte que con nuestras invitaciones digitales puedes tener:\n\n💌 Diseño único según tu temática\n✅ Confirmaciones automáticas de asistencia\n🎵 Música y galería de fotos integradas\n📊 Panel para ver en tiempo real quiénes asisten\n🌍 Envío instantáneo a todos tus invitados\n\nTodo desde *$100 USD* — con entrega en máximo 5 días.\n\n*¿Ya tienes en mente una fecha para tu evento?* 📅\n\nSi es así, ¡podemos comenzar hoy mismo! 🎉\n📝 ' + form
-                            : 'Hello! 🌸 I am *Carolina* from *Invitartes*.\n\nI wanted to remind you that with our digital invitations you can have:\n\n💌 Unique design based on your theme\n✅ Automatic attendance confirmations\n🎵 Music and photo gallery included\n📊 Real-time panel to see who is attending\n🌍 Instant delivery to all your guests\n\nAll from *$100 USD* — delivered in maximum 5 days.\n\n*Do you already have a date in mind for your event?* 📅\n\nIf so, we can start today! 🎉\n📝 ' + form
+                            ? '¡Hola! 🌸 Soy *Carolina* de *Invitartes*.\n\nQuería recordarte que con nuestras invitaciones digitales puedes tener:\n\n💌 Diseño único según tu temática\n✅ Confirmaciones automáticas de asistencia\n🎵 Música y galería de fotos integradas\n📊 Panel para ver en tiempo real quiénes asisten\n🌍 Envío instantáneo a todos tus invitados\n\nTodo desde *$85 USD* — con entrega en máximo 5 días.\n\n*¿Ya tienes en mente una fecha para tu evento?* 📅\n\nSi es así, ¡podemos comenzar hoy mismo! 🎉\n📝 ' + form
+                            : 'Hello! 🌸 I am *Carolina* from *Invitartes*.\n\nI wanted to remind you that with our digital invitations you can have:\n\n💌 Unique design based on your theme\n✅ Automatic attendance confirmations\n🎵 Music and photo gallery included\n📊 Real-time panel to see who is attending\n🌍 Instant delivery to all your guests\n\nAll from *$85 USD* — delivered in maximum 5 days.\n\n*Do you already have a date in mind for your event?* 📅\n\nIf so, we can start today! 🎉\n📝 ' + form
                     );
                     e.seguimiento24Enviado = true;
                     console.log(`📞 Seguimiento 24h → ${userId}`);
