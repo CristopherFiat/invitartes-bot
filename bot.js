@@ -16,7 +16,7 @@ const FIREBASE_URLS = {
     imagenLia:    'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/lia.webp?alt=media'
 };
 
-const userStates     = new Map();
+const userStates      = new Map();
 const processingUsers = new Map();
 
 const client = new Client({
@@ -78,23 +78,36 @@ client.on('disconnected', (reason) => {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-const SPANISH_COUNTRY_CODES = [
-    '593', '591', '506', '503', '240', '502', '504', '505', '507', '595', '598',
-    '1787', '1809', '1829', '1849', '1939',
+const CODIGOS_HISPANOS = [
+    '1787', '1939',
+    '1809', '1829', '1849',
+    '593', '591', '595', '598',
+    '506', '503', '502', '504', '505', '507',
+    '240',
     '54', '56', '57', '53', '52', '51', '34', '58',
 ];
 
 function esHispanohablante(userId) {
-    const numero = userId.replace('@c.us', '').replace(/^\+/, '');
-    const codesOrdenados = [...SPANISH_COUNTRY_CODES].sort((a, b) => b.length - a.length);
-    
+    const numero = userId
+        .replace('@c.us', '')
+        .replace(/\D/g, '')
+        .trim();
+
+    if (!numero || numero.length < 6) {
+        console.log(`⚠️ Número inválido (${userId}) → asumiendo Español`);
+        return true;
+    }
+
+    const codesOrdenados = [...CODIGOS_HISPANOS].sort((a, b) => b.length - a.length);
+
     for (const codigo of codesOrdenados) {
         if (numero.startsWith(codigo)) {
-            console.log(`🌍 País detectado: +${codigo} → Español`);
+            console.log(`🌍 +${codigo} detectado → Español (${numero.substring(0, 6)}...)`);
             return true;
         }
     }
-    console.log(`🌍 Código no hispanohablante → Inglés (número: ${numero.substring(0, 4)}...)`);
+
+    console.log(`🌍 Código no hispano → Inglés (${numero.substring(0, 4)}...)`);
     return false;
 }
 
@@ -136,34 +149,30 @@ async function enviarSecuencia(userId) {
         const FORM_ES = 'https://docs.google.com/forms/d/e/1FAIpQLSemjvJ7kdMHXojtciXBsaOOJFN1Zl8wFEG5DPc1ayfpSWZ67g/viewform?usp=header';
         const FORM_EN = 'https://docs.google.com/forms/d/e/1FAIpQLSc3xqI5c4J6ElWNUTyYFccgJsPL4Br9qBF9bDHsyzV1t2jRrg/viewform?usp=header';
         const form = esEspanol ? FORM_ES : FORM_EN;
-        console.log(`📤 Iniciando secuencia para: ${userId} | Idioma: ${esEspanol ? 'ES' : 'EN'}`);
+        console.log(`📤 Iniciando secuencia: ${userId} | ${esEspanol ? 'ES 🇪🇸' : 'EN 🇺🇸'}`);
 
         await chat.sendStateTyping();
         await sleep(1500);
-        if (esEspanol) {
-            await chat.sendMessage(
-                '¡Hola! 👋 Te saludamos de *Invitartes*, con gusto te contamos sobre nuestras invitaciones digitales ✨\n\n' +
-                '¿Sabías que tu invitación puede ser toda una experiencia? 🤩\n\n' +
-                '🎨 Crea invitaciones ilimitadas y personalizadas\n' +
-                '🎵 Con música, fotos y videos incluidos\n' +
-                '💬 Recibe y ve todos los mensajes de tus invitados\n' +
-                '📸 Tus invitados pueden subir sus fotos directamente desde la invitación, ¡creando un álbum compartido en tiempo real!\n' +
-                '✅ Confirmaciones en tiempo real\n' +
-                '🌍 Llega a todo el mundo en segundos'
-            );
-        } else {
-            await chat.sendMessage(
-                'Hello! 👋 Greetings from *Invitartes*, we are happy to tell you about our digital invitations ✨\n\n' +
-                'Did you know your invitation can be a whole experience? 🤩\n\n' +
-                '🎨 Create unlimited and personalized invitations\n' +
-                '🎵 With music, photos and videos included\n' +
-                '💬 Receive and view all messages from your guests\n' +
-                '📸 Your guests can upload their photos directly from the invitation, creating a shared album in real time!\n' +
-                '✅ Real-time confirmations\n' +
-                '🌍 Reaches anywhere in the world in seconds'
-            );
-        }
-        console.log(`  ✓ ${userId}: 1 — Presentación + funciones`);
+        await chat.sendMessage(
+            esEspanol
+                ? '¡Hola! 👋 Te saludamos de *Invitartes*, con gusto te contamos sobre nuestras invitaciones digitales ✨\n\n' +
+                  '¿Sabías que tu invitación puede ser toda una experiencia? 🤩\n\n' +
+                  '🎨 Crea invitaciones ilimitadas y personalizadas\n' +
+                  '🎵 Con música, fotos y videos incluidos\n' +
+                  '💬 Recibe y ve todos los mensajes de tus invitados\n' +
+                  '📸 Tus invitados pueden subir sus fotos directamente desde la invitación, ¡creando un álbum compartido en tiempo real!\n' +
+                  '✅ Confirmaciones en tiempo real\n' +
+                  '🌍 Llega a todo el mundo en segundos'
+                : 'Hello! 👋 Greetings from *Invitartes*, we are happy to tell you about our digital invitations ✨\n\n' +
+                  'Did you know your invitation can be a whole experience? 🤩\n\n' +
+                  '🎨 Create unlimited and personalized invitations\n' +
+                  '🎵 With music, photos and videos included\n' +
+                  '💬 Receive and view all messages from your guests\n' +
+                  '📸 Your guests can upload their photos directly from the invitation, creating a shared album in real time!\n' +
+                  '✅ Real-time confirmations\n' +
+                  '🌍 Reaches anywhere in the world in seconds'
+        );
+        console.log(`  ✓ ${userId}: 1 — Presentación`);
 
         await chat.sendStateTyping();
         await sleep(2000);
@@ -175,12 +184,13 @@ async function enviarSecuencia(userId) {
                     : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\nThe most beautiful love deserves to be celebrated in the most special way. We invite you to be part of this unique moment we will keep in our hearts forever. 💫\n\nConfirm your attendance inside the invitation 👇\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
             });
         } catch {
-            await chat.sendMessage(esEspanol
-                ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
-                : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+            await chat.sendMessage(
+                esEspanol
+                    ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                    : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
             );
         }
-        console.log(`  ✓ ${userId}: 3 — Foto Boda`);
+        console.log(`  ✓ ${userId}: 2 — Imagen Boda`);
 
         await chat.sendStateTyping();
         await sleep(2000);
@@ -192,12 +202,13 @@ async function enviarSecuencia(userId) {
                     : '🌸 *Real example 2 — Sweet 15* 🌸\n\n🌟 There are moments that mark you forever... a Sweet 15 is one of them. 🎀\n\nA magical night, full of dreams, light and memories that last a lifetime. ✨\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
             });
         } catch {
-            await chat.sendMessage(esEspanol
-                ? '🌸 *Ejemplo real 2 — Quinceaños* 🌸\n\n🌟 Hay momentos que marcan para siempre... 🎀\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
-                : '🌸 *Real example 2 — Sweet 15* 🌸\n\n🌟 There are moments that mark you forever... 🎀\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
+            await chat.sendMessage(
+                esEspanol
+                    ? '🌸 *Ejemplo real 2 — Quinceaños* 🌸\n\n🌟 Hay momentos que marcan para siempre... 🎀\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                    : '🌸 *Real example 2 — Sweet 15* 🌸\n\n🌟 There are moments that mark you forever... 🎀\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
             );
         }
-        console.log(`  ✓ ${userId}: 4 — Foto XV Años`);
+        console.log(`  ✓ ${userId}: 3 — Imagen XV Años`);
 
         await chat.sendStateTyping();
         await sleep(2000);
@@ -206,14 +217,12 @@ async function enviarSecuencia(userId) {
                 ? '🔗 Te invito a visitar este enlace donde podrás conocer cómo funciona nuestra plataforma de administración de invitaciones y ver las características detalladas de cada paquete:\n\n👉 https://invitartes.com/caracteristicas/'
                 : '🔗 Visit this link to learn how our invitation management platform works and see the detailed features of each package:\n\n👉 https://invitartes.com/caracteristicas/'
         );
-        console.log(`  ✓ ${userId}: 5 — Link plataforma`);
+        console.log(`  ✓ ${userId}: 4 — Link plataforma`);
 
         if (esEspanol) {
             await chat.sendStateTyping();
             await sleep(1500);
             await chat.sendMessage('🎧 Te explico brevemente nuestros paquetes en el siguiente audio:');
-            console.log(`  ✓ ${userId}: 6 — Intro audio`);
-
             await sleep(800);
             try {
                 const audio = await MessageMedia.fromUrl(FIREBASE_URLS.audio);
@@ -221,39 +230,37 @@ async function enviarSecuencia(userId) {
             } catch {
                 console.log(`  ⚠️ ${userId}: Error enviando audio`);
             }
-            console.log(`  ✓ ${userId}: 7 — Audio`);
+            console.log(`  ✓ ${userId}: 5 — Audio`);
         }
 
         await chat.sendStateTyping();
         await sleep(2000);
-        if (esEspanol) {
-            await chat.sendMessage(
-                '🎁 *Nuestros Paquetes*\n\n' +
-                '*ESSENTIAL — $85*\n' +
-                'Basado en plantilla, sencillo y bonito.\n' +
-                '👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                '*DELUXE — $105*\n' +
-                'Diseño personalizado + imágenes y plataforma de envíos.\n' +
-                '👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                '*ELITE — $130* 👑\n' +
-                'Todo lo del Deluxe + invitaciones ilimitadas, íconos animados, fecha máxima de confirmación y más.\n' +
-                '👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
-            );
-        } else {
-            await chat.sendMessage(
-                '🎁 *Our Packages*\n\n' +
-                '*ESSENTIAL — $85*\n' +
-                'Template-based, simple and beautiful.\n' +
-                '👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                '*DELUXE — $105*\n' +
-                'Custom design + photos and sending platform.\n' +
-                '👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                '*ELITE — $130* 👑\n' +
-                'Everything in Deluxe + unlimited invitations, animated icons, max confirmation date and more.\n' +
-                '👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
-            );
-        }
-        console.log(`  ✓ ${userId}: 8 — Paquetes`);
+        await chat.sendMessage(
+            esEspanol
+                ? '🎁 *Nuestros Paquetes*\n\n' +
+                  '*CLÁSICO — $100 USD*\n' +
+                  'Invitación completa basada en plantilla, colores y animaciones personalizadas. Incluye música, Maps, cuenta regresiva, regalos, Google Calendar y más.\n' +
+                  '👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*PREMIUM — $175 USD* ⭐ _(Más popular)_\n' +
+                  'Diseño completamente personalizado, invitaciones ilimitadas, plataforma privada con dashboard, QR, exportar PDF, hospedaje, mesa y canción en tiempo real. Hasta 2 idiomas.\n' +
+                  '👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*PRESTIGE — $575 USD* 👑 _(Máximo nivel)_\n' +
+                  'Página diseñada desde cero, invitaciones ilimitadas + hasta 4 idiomas, dominio propio opcional, secciones ilimitadas y animación de apertura a medida.\n' +
+                  '👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
+                  '💳 _Pago único · Sin suscripción_'
+                : '🎁 *Our Packages*\n\n' +
+                  '*CLASSIC — $100 USD*\n' +
+                  'Complete template-based invitation with personalized colors and animations. Includes music, Maps, countdown, gifts, Google Calendar and more.\n' +
+                  '👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*PREMIUM — $175 USD* ⭐ _(Most popular)_\n' +
+                  'Fully custom design, unlimited invitations, private platform with dashboard, QR, PDF export, hosting, seating chart and real-time song. Up to 2 languages.\n' +
+                  '👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*PRESTIGE — $575 USD* 👑 _(Maximum level)_\n' +
+                  'Page designed from scratch, unlimited invitations + up to 4 languages, optional custom domain, unlimited sections and custom opening animation.\n' +
+                  '👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
+                  '💳 _One-time payment · No subscription_'
+        );
+        console.log(`  ✓ ${userId}: 6 — Paquetes`);
 
         await chat.sendStateTyping();
         await sleep(2000);
@@ -261,7 +268,7 @@ async function enviarSecuencia(userId) {
             await chat.sendMessage(
                 'Para comenzar, responde estas *5 preguntas rápidas* y un diseñador se pondrá en contacto contigo para continuar el proceso:\n\n' +
                 '📝 ' + form + '\n\n' +
-                'Una vez que lo llenes, te enviaremos nuestros datos de pago. Iniciamos con un abono de *$30* y el saldo restante lo puede pagar al momento de la entrega de sus invitaciones. 💳'
+                'Una vez que lo llenes, te enviaremos nuestros datos de pago. Iniciamos con un abono de *$30* y el saldo restante lo puedes pagar al momento de la entrega. 💳'
             );
             await sleep(1500);
             await chat.sendStateTyping();
@@ -277,15 +284,15 @@ async function enviarSecuencia(userId) {
                 'I am here if you have any questions! 😊'
             );
         }
-        console.log(`  ✓ ${userId}: 9 — Formulario`);
+        console.log(`  ✓ ${userId}: 7 — Formulario`);
 
         const estado = userStates.get(userId);
         if (estado) {
-            estado.secuenciaCompleta    = true;
+            estado.secuenciaCompleta      = true;
             estado.respondioPostSecuencia = false;
-            estado.seguimiento1Enviado  = false;
-            estado.seguimiento2Enviado  = false;
-            estado.seguimiento24Enviado = false;
+            estado.seguimiento1Enviado    = false;
+            estado.seguimiento2Enviado    = false;
+            estado.seguimiento24Enviado   = false;
         }
         console.log(`✅ Secuencia completa: ${userId}\n`);
 
@@ -325,8 +332,8 @@ async function enviarSecuencia(userId) {
                 try {
                     await chat.sendMessage(
                         esEspanol
-                            ? '¡Hola! 🌸 Soy *Carolina* de *Invitartes*.\n\nQuería recordarte que con nuestras invitaciones digitales puedes tener:\n\n💌 Diseño único según tu temática\n✅ Confirmaciones automáticas de asistencia\n🎵 Música y galería de fotos integradas\n📊 Panel para ver en tiempo real quiénes asisten\n🌍 Envío instantáneo a todos tus invitados\n\nTodo desde *$85* — con entrega en máximo 5 días.\n\n*¿Ya tienes en mente una fecha para tu evento?* 📅\n\nSi es así, ¡podemos comenzar hoy mismo! 🎉\n📝 ' + form
-                            : 'Hello! 🌸 I am *Carolina* from *Invitartes*.\n\nI wanted to remind you that with our digital invitations you can have:\n\n💌 Unique design based on your theme\n✅ Automatic attendance confirmations\n🎵 Music and photo gallery included\n📊 Real-time panel to see who is attending\n🌍 Instant delivery to all your guests\n\nAll from *$85* — delivered in maximum 5 days.\n\n*Do you already have a date in mind for your event?* 📅\n\nIf so, we can start today! 🎉\n📝 ' + form
+                            ? '¡Hola! 🌸 Soy *Carolina* de *Invitartes*.\n\nQuería recordarte que con nuestras invitaciones digitales puedes tener:\n\n💌 Diseño único según tu temática\n✅ Confirmaciones automáticas de asistencia\n🎵 Música y galería de fotos integradas\n📊 Panel para ver en tiempo real quiénes asisten\n🌍 Envío instantáneo a todos tus invitados\n\nTodo desde *$100 USD* — con entrega en máximo 5 días.\n\n*¿Ya tienes en mente una fecha para tu evento?* 📅\n\nSi es así, ¡podemos comenzar hoy mismo! 🎉\n📝 ' + form
+                            : 'Hello! 🌸 I am *Carolina* from *Invitartes*.\n\nI wanted to remind you that with our digital invitations you can have:\n\n💌 Unique design based on your theme\n✅ Automatic attendance confirmations\n🎵 Music and photo gallery included\n📊 Real-time panel to see who is attending\n🌍 Instant delivery to all your guests\n\nAll from *$100 USD* — delivered in maximum 5 days.\n\n*Do you already have a date in mind for your event?* 📅\n\nIf so, we can start today! 🎉\n📝 ' + form
                     );
                     e.seguimiento24Enviado = true;
                     console.log(`📞 Seguimiento 24h → ${userId}`);
@@ -346,9 +353,9 @@ async function enviarMensajeAsesor(userId) {
         const chat = await client.getChatById(userId);
         await chat.sendStateTyping();
         await sleep(1500);
-        const esEspanolAsesor = esHispanohablante(userId);
+        const esEspanol = esHispanohablante(userId);
         await chat.sendMessage(
-            esEspanolAsesor
+            esEspanol
                 ? '👩🏻‍💼 ¡Perfecto! En unos momentos uno de nuestros asesores se pondrá en contacto contigo.\n\nPor favor permanece en línea 🙏\n\nSerá un placer atenderte. ✨'
                 : '👩🏻‍💼 Perfect! One of our advisors will contact you shortly.\n\nPlease stay online 🙏\n\nIt will be a pleasure to assist you. ✨'
         );
@@ -438,7 +445,7 @@ client.on('message', async (message) => {
         }
 
         if (estado.conversacionLibre) {
-            console.log(`💬 ${userId} conversación libre`);
+            console.log(`💬 ${userId} en conversación libre`);
             return;
         }
 
@@ -446,9 +453,9 @@ client.on('message', async (message) => {
             processingUsers.set(userId, Date.now());
             estado.intentoMenu = 2;
             try {
-                const esEsp2 = esHispanohablante(userId);
-                await chat.sendMessage(
-                    esEsp2
+                const esEsp = esHispanohablante(userId);
+                await (await client.getChatById(userId)).sendMessage(
+                    esEsp
                         ? 'Disculpa, no entendí tu mensaje 😊\n\nPor favor escribe *1* o *2* para continuar.'
                         : 'Sorry, I did not understand your message 😊\n\nPlease type *1* or *2* to continue.'
                 );
@@ -464,9 +471,9 @@ client.on('message', async (message) => {
             processingUsers.set(userId, Date.now());
             estado.conversacionLibre = true;
             try {
-                const esEsp3 = esHispanohablante(userId);
-                await chat.sendMessage(
-                    esEsp3
+                const esEsp = esHispanohablante(userId);
+                await (await client.getChatById(userId)).sendMessage(
+                    esEsp
                         ? 'Parece que necesitas ayuda personalizada 😊\nTe conecto con un asesor ahora mismo 👩‍💻'
                         : 'It seems you need personalized help 😊\nLet me connect you with an advisor right now 👩‍💻'
                 );
@@ -504,8 +511,12 @@ app.get('/', async (req, res) => {
     }
 });
 
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', ready: clientReady, hasQR: !!qrCodeData, timestamp: new Date().toISOString() });
+});
+
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.2');
+    console.log('\n🤖 INVITARTES BOT v4.3');
     console.log(`🌐 Puerto: ${PORT}`);
     console.log('🚀 Inicializando WhatsApp...\n');
 });
