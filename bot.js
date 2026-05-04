@@ -1,9 +1,7 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,31 +18,8 @@ const FIREBASE_URLS = {
 
 const userStates      = new Map();
 const processingUsers = new Map();
-
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-const FORM_ES = 'https://docs.google.com/forms/d/e/1FAIpQLSemjvJ7kdMHXojtciXBsaOOJFN1Zl8wFEG5DPc1ayfpSWZ67g/viewform?usp=header';
-const FORM_EN = 'https://docs.google.com/forms/d/e/1FAIpQLSc3xqI5c4J6ElWNUTyYFccgJsPL4Br9qBF9bDHsyzV1t2jRrg/viewform?usp=header';
-
-const CODIGOS_HISPANOS = [
-    '1787', '1939', '1809', '1829', '1849',
-    '593', '591', '595', '598', '506', '503', '502', '504', '505', '507', '240',
-    '54', '56', '57', '53', '52', '51', '34', '58',
-];
-
-function esHispanohablante(userId) {
-    const numero = userId.replace('@s.whatsapp.net', '').replace(/\D/g, '').trim();
-    if (!numero || numero.length < 6) return true;
-    const codesOrdenados = [...CODIGOS_HISPANOS].sort((a, b) => b.length - a.length);
-    for (const codigo of codesOrdenados) {
-        if (numero.startsWith(codigo)) {
-            console.log(`🌍 +${codigo} → Español`);
-            return true;
-        }
-    }
-    console.log(`🌍 → Inglés (${numero.substring(0, 4)}...)`);
-    return false;
-}
+const FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSc1KeOF_isYggQcmkydkfxQRymA8fVn1gEUXxlr8e2zVjwDNA/viewform?usp=header';
 
 async function sendText(jid, text) {
     if (!sock) return;
@@ -65,43 +40,23 @@ async function sendAudio(jid, url) {
     try {
         await sock.sendMessage(jid, { audio: { url }, mimetype: 'audio/mp4', ptt: false });
     } catch {
-        console.log(`⚠️ Error enviando audio`);
+        console.log('⚠️ Error enviando audio');
     }
 }
 
-async function enviarSelectorIdioma(userId) {
+async function enviarBienvenida(userId) {
     try {
         await sendText(userId,
-            '👋 ¡Hola! / Hi!\n\n' +
-            'Por favor, selecciona tu idioma / Please select your language:\n\n' +
-            '🇪🇸 *1* — Español\n' +
-            '🇺🇸 *2* — English\n\n' +
-            '✍️ Escribe solo el número *1* o *2* para continuar.\n' +
-            '✍️ Type only the number *1* or *2* to continue.'
+            '🎉 ¡Hola! Bienvenido/a a *Invitartes*.\n\n' +
+            '👇 Elige una opción *escribiendo el número*:\n\n' +
+            '1️⃣ Explícame sobre las invitaciones digitales\n' +
+            '2️⃣ Hablar con un asesor\n' +
+            '3️⃣ Tell me about digital invitations 🇺🇸\n' +
+            '4️⃣ Speak with an advisor 🇺🇸\n\n' +
+            '✍️ Escribe solo el número *1*, *2*, *3* o *4* para continuar.'
         );
     } catch (err) {
-        console.error(`❌ Error selector idioma:`, err.message);
-    } finally {
-        processingUsers.delete(userId);
-    }
-}
-
-async function enviarMenu(userId, esEspanol) {
-    try {
-        await sleep(1000);
-        await sendText(userId,
-            esEspanol
-                ? '¿En qué te puedo ayudar hoy?\n\n' +
-                  '1️⃣ Quiero conocer las invitaciones digitales\n' +
-                  '2️⃣ Prefiero hablar con un asesor\n\n' +
-                  '✍️ Escribe solo el número *1 o 2* para continuar.'
-                : 'How can I help you today?\n\n' +
-                  '1️⃣ I want to learn about digital invitations\n' +
-                  '2️⃣ I prefer to speak with an advisor\n\n' +
-                  '✍️ Type only the number *1 or 2* to continue.'
-        );
-    } catch (err) {
-        console.error(`❌ Error menú:`, err.message);
+        console.error('❌ Error bienvenida:', err.message);
     } finally {
         processingUsers.delete(userId);
     }
@@ -109,8 +64,7 @@ async function enviarMenu(userId, esEspanol) {
 
 async function enviarSecuencia(userId, esEspanol) {
     try {
-        const form = esEspanol ? FORM_ES : FORM_EN;
-        console.log(`📤 Secuencia: ${userId} | ${esEspanol ? 'ES' : 'EN'}`);
+        console.log('📤 Secuencia: ' + userId + ' | ' + (esEspanol ? 'ES' : 'EN'));
 
         await sleep(1500);
         await sendText(userId,
@@ -165,34 +119,51 @@ async function enviarSecuencia(userId, esEspanol) {
         await sendText(userId,
             esEspanol
                 ? '🎁 *Nuestros Paquetes*\n\n' +
-                  '*ESSENTIAL — $85*\nBasado en plantilla, sencillo y bonito.\n👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*DELUXE — $105*\nDiseño personalizado + imágenes y plataforma de envíos.\n👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*ELITE — $130* 👑\nTodo lo del Deluxe + invitaciones ilimitadas, íconos animados, fecha máxima de confirmación y más.\n👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
-                  '💳 _Pago único · Sin suscripción_'
+                  '_Todas nuestras invitaciones son completamente personalizadas_ 🎨\n\n' +
+                  '*ESSENTIAL — $85*\nBasado en plantilla, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*DELUXE — $105*\nDiseño personalizado + imágenes y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*ÉLITE — $130* 👑\nTodo lo del Deluxe + invitaciones ilimitadas, íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
                 : '🎁 *Our Packages*\n\n' +
-                  '*ESSENTIAL — $85*\nTemplate-based, simple and beautiful.\n👉 https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*DELUXE — $105*\nCustom design + photos and sending platform.\n👉 https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*ELITE — $130* 👑\nEverything in Deluxe + unlimited invitations, animated icons, max confirmation date and more.\n👉 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
-                  '💳 _One-time payment · No subscription_'
+                  '_All our invitations are completely personalized_ 🎨\n\n' +
+                  '*ESSENTIAL — $85*\nTemplate-based, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*DELUXE — $105*\nCustom design + photos and sending platform.\n👉 (DELUXE Example) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*ELITE — $130* 👑\nEverything in Deluxe + unlimited invitations, animated icons, premium animations, max confirmation date and more.\n👉 (ELITE Example) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
         );
 
         await sleep(2000);
-        if (esEspanol) {
-            await sendText(userId,
-                'Para comenzar, responde estas *5 preguntas rápidas* y un diseñador se pondrá en contacto contigo:\n\n' +
-                '📝 ' + form + '\n\n' +
-                'Una vez que lo llenes, te enviaremos nuestros datos de pago. Iniciamos con un abono de *$30* y el saldo restante lo puedes pagar al momento de la entrega. 💳'
-            );
-            await sleep(1500);
-            await sendText(userId,
-                'Por favor confírmanos una vez que hayas llenado el formulario. ✅\n\n¡Cualquier pregunta con gusto te ayudamos! 😊'
-            );
-        } else {
-            await sendText(userId,
-                'To get started, answer these *5 quick questions* and a designer will contact you:\n\n' +
-                '📝 ' + form + '\n\nI am here if you have any questions! 😊'
-            );
-        }
+        await sendText(userId,
+            esEspanol
+                ? 'Para iniciar con el proceso, por favor complete el siguiente formulario (Datos para sus invitaciones):\n📝 ' + FORM + '\n\n' +
+                  'O si lo prefiere, también puede enviarnos por WhatsApp los detalles y la temática que desea para sus invitaciones.\n\n' +
+                  'Una vez recibamos la información, nos comprometemos a entregarle las invitaciones en un plazo máximo de *5 días*.\n\n' +
+                  'Empezamos con un abono inicial de *$10*, que puede realizar al siguiente número de cuenta:\n\n' +
+                  '🏦 *Banco de Loja*\n' +
+                  'Número de cuenta: *2904553231*\n' +
+                  'Cédula: *1104753122*\n' +
+                  'Tipo de cuenta: Cuenta de ahorros _(cuenta activa)_\n' +
+                  'Titular: *ALVAREZ GRANDA, GUIDO CRISTOPHER*\n\n' +
+                  'El saldo restante podrá ser cancelado en el momento de la entrega de sus invitaciones. ✨'
+                : 'To start the process, please fill out the following form (Details for your invitations):\n📝 ' + FORM + '\n\n' +
+                  'Or if you prefer, you can also send us the details and theme you want for your invitations via WhatsApp.\n\n' +
+                  'Once we receive the information, we commit to delivering your invitations within a maximum of *5 days*.\n\n' +
+                  'We start with an initial deposit of *$10*, which you can send using one of the following options:\n\n' +
+                  '🇪🇨 *If you are in Ecuador — Bank transfer:*\n' +
+                  '🏦 Banco de Loja\n' +
+                  'Account number: *2904553231*\n' +
+                  'ID: *1104753122*\n' +
+                  'Account type: Savings account _(active account)_\n' +
+                  'Holder: *ALVAREZ GRANDA, GUIDO CRISTOPHER*\n\n' +
+                  '🌍 *If you are outside Ecuador — PayPal:*\n' +
+                  '👉 https://paypal.me/CristopherAlvarezG?locale.x=es_XC&country.x=EC\n\n' +
+                  'The remaining balance can be paid at the time of delivery of your invitations. ✨'
+        );
+
+        await sleep(2000);
+        await sendText(userId,
+            esEspanol
+                ? 'Si tiene alguna pregunta, por favor coméntenos, estamos para servirle ✨'
+                : 'If you have any questions, please let us know, we are here to help you ✨'
+        );
 
         const estado = userStates.get(userId);
         if (estado) {
@@ -202,12 +173,12 @@ async function enviarSecuencia(userId, esEspanol) {
             estado.seguimiento2Enviado    = false;
             estado.seguimiento3Enviado    = false;
         }
-        console.log(`✅ Secuencia completa: ${userId}`);
+        console.log('✅ Secuencia completa: ' + userId);
 
         // Seguimiento 1 — 7 minutos
         setTimeout(async () => {
             const e = userStates.get(userId);
-            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado) {
+            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado && !e.duenoAtendio) {
                 try {
                     await sendText(userId,
                         esEspanol
@@ -215,42 +186,60 @@ async function enviarSecuencia(userId, esEspanol) {
                             : 'Hello! 👋 I am *Carolina* from *Invitartes*, do you have any questions about our packages?\n\nI am here to help you ✨'
                     );
                     e.seguimiento1Enviado = true;
-                } catch { console.log(`⚠️ Error seguimiento 1`); }
+                } catch { console.log('⚠️ Error seguimiento 1'); }
             }
         }, 7 * 60 * 1000);
 
         // Seguimiento 2 — 14 minutos
         setTimeout(async () => {
             const e = userStates.get(userId);
-            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado) {
+            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
                 try {
                     await sendText(userId,
                         esEspanol
-                            ? 'Te dejo algunos ejemplos más:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda moderna: https://invitartes.com/invitacion-a-la-boda-de-israel-y-genesis/\n• Graduación: https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\nPara comenzar:\n📝 ' + form + '\n\nQuedo atenta 💛'
-                            : 'Here are some more examples:\n\n• Sweet 15: https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Modern Wedding: https://invitartes.com/invitacion-a-la-boda-de-israel-y-genesis/\n• Graduation: https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\nTo get started:\n📝 ' + form + '\n\nI am here for you 💛'
+                            ? 'Te dejo algunos ejemplos más:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda moderna: https://invitartes.com/invitacion-a-la-boda-de-israel-y-genesis/\n• Graduación: https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\nPara comenzar:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
+                            : 'Here are some more examples:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Modern Wedding: https://invitartes.com/invitacion-a-la-boda-de-israel-y-genesis/\n• Graduation: https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\nTo get started:\n📝 ' + FORM + '\n\nI am here for you 💛'
                     );
                     e.seguimiento2Enviado = true;
-                } catch { console.log(`⚠️ Error seguimiento 2`); }
+                } catch { console.log('⚠️ Error seguimiento 2'); }
             }
         }, 14 * 60 * 1000);
 
-        // Seguimiento 3 — 1 hora
+        // Seguimiento 3 — 24 horas
         setTimeout(async () => {
             const e = userStates.get(userId);
-            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento3Enviado) {
+            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento3Enviado && !e.duenoAtendio) {
                 try {
                     await sendText(userId,
                         esEspanol
-                            ? '¡Hola! 🌸 Soy *Carolina* de *Invitartes*.\n\nQuería recordarte que con nuestras invitaciones digitales puedes tener:\n\n💌 Diseño único según tu temática\n✅ Confirmaciones automáticas de asistencia\n🎵 Música y galería de fotos integradas\n📊 Panel para ver en tiempo real quiénes asisten\n🌍 Envío instantáneo a todos tus invitados\n\nTodo desde *$85 USD* — con entrega en máximo 5 días.\n\n*¿Ya tienes en mente una fecha para tu evento?* 📅\n\n¡Podemos comenzar hoy mismo! 🎉\n📝 ' + form
-                            : 'Hello! 🌸 I am *Carolina* from *Invitartes*.\n\nI wanted to remind you about our digital invitations:\n\n💌 Unique design based on your theme\n✅ Automatic attendance confirmations\n🎵 Music and photo gallery included\n📊 Real-time panel to see who is attending\n🌍 Instant delivery to all your guests\n\nAll from *$85 USD* — delivered in maximum 5 days.\n\n*Do you already have a date in mind?* 📅\n\nWe can start today! 🎉\n📝 ' + form
+                            ? '¡Hola! 🌸 Soy *Carolina* de *Invitartes*.\n\n' +
+                              'Quería recordarte que con nuestras invitaciones digitales puedes tener:\n\n' +
+                              '💌 Diseño único según tu temática\n' +
+                              '✅ Confirmaciones automáticas de asistencia\n' +
+                              '🎵 Música y galería de fotos integradas\n' +
+                              '📊 Panel para ver en tiempo real quiénes asisten\n' +
+                              '🌍 Envío instantáneo a todos tus invitados\n\n' +
+                              'Todo desde *$85 USD* — con entrega en máximo 5 días.\n\n' +
+                              '*¿Para qué evento necesitas tu invitación?* 📅\n\n' +
+                              'Llena este formulario _(5 min)_ y comenzamos a dar vida a tu invitación personalizada. 🎨✨\n📝 ' + FORM
+                            : 'Hello! 🌸 I am *Carolina* from *Invitartes*.\n\n' +
+                              'I wanted to remind you that with our digital invitations you can have:\n\n' +
+                              '💌 Unique design based on your theme\n' +
+                              '✅ Automatic attendance confirmations\n' +
+                              '🎵 Music and photo gallery included\n' +
+                              '📊 Real-time panel to see who is attending\n' +
+                              '🌍 Instant delivery to all your guests\n\n' +
+                              'All from *$85 USD* — delivered in maximum 5 days.\n\n' +
+                              '*What event do you need your invitation for?* 📅\n\n' +
+                              'Fill out this form _(5 min)_ and we will start bringing your personalized invitation to life. 🎨✨\n📝 ' + FORM
                     );
                     e.seguimiento3Enviado = true;
-                } catch { console.log(`⚠️ Error seguimiento 3`); }
+                } catch { console.log('⚠️ Error seguimiento 3'); }
             }
-        }, 60 * 60 * 1000);
+        }, 24 * 60 * 60 * 1000);
 
     } catch (err) {
-        console.error(`❌ Error secuencia:`, err.message);
+        console.error('❌ Error secuencia:', err.message);
     } finally {
         processingUsers.delete(userId);
     }
@@ -265,7 +254,7 @@ async function enviarMensajeAsesor(userId, esEspanol) {
                 : '👩🏻‍💼 Perfect! One of our advisors will contact you shortly.\n\nPlease stay online 🙏\n\nIt will be a pleasure to assist you. ✨'
         );
     } catch (err) {
-        console.error(`❌ Error asesor:`, err.message);
+        console.error('❌ Error asesor:', err.message);
     } finally {
         processingUsers.delete(userId);
     }
@@ -288,23 +277,17 @@ async function startBot() {
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
-
         if (qr) {
             console.log('📱 QR generado');
             qrCodeData = await QRCode.toDataURL(qr);
             isConnected = false;
         }
-
         if (connection === 'close') {
             isConnected = false;
             qrCodeData = '';
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('❌ Desconectado. Reconectando:', shouldReconnect);
-            if (shouldReconnect) {
-                setTimeout(startBot, 3000);
-            }
+            if (shouldReconnect) setTimeout(startBot, 3000);
         }
-
         if (connection === 'open') {
             isConnected = true;
             qrCodeData = '';
@@ -314,21 +297,27 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return;
-
         for (const message of messages) {
             try {
-                if (message.key.fromMe) continue;
                 if (message.key.remoteJid?.endsWith('@g.us')) continue;
-
                 const userId = message.key.remoteJid;
+
+                // Si el dueño escribe, cancelar seguimientos
+                if (message.key.fromMe) {
+                    const e = userStates.get(userId);
+                    if (e) {
+                        e.duenoAtendio = true;
+                        console.log('👤 Dueño atendió a: ' + userId + ' — seguimientos cancelados');
+                    }
+                    continue;
+                }
+
                 const messageText = (
                     message.message?.conversation ||
-                    message.message?.extendedTextMessage?.text ||
-                    ''
+                    message.message?.extendedTextMessage?.text || ''
                 ).trim();
-
                 if (!messageText) continue;
-                console.log(`📩 ${userId}: "${messageText}"`);
+                console.log('📩 ' + userId + ': "' + messageText + '"');
 
                 if (processingUsers.has(userId)) {
                     const elapsed = Date.now() - processingUsers.get(userId);
@@ -338,51 +327,47 @@ async function startBot() {
 
                 let estado = userStates.get(userId);
 
-                // USUARIO NUEVO
                 if (!estado) {
                     processingUsers.set(userId, Date.now());
                     userStates.set(userId, {
-                        paso: 'eligiendo_idioma',
-                        intentoIdioma: 1,
+                        paso: 'bienvenida',
                         esEspanol: null,
                         secuenciaCompleta: false,
                         respondioPostSecuencia: false,
                         seguimiento1Enviado: false,
                         seguimiento2Enviado: false,
                         seguimiento3Enviado: false,
-                        intentoMenu: 0,
+                        duenoAtendio: false,
                         conversacionLibre: false
                     });
-                    enviarSelectorIdioma(userId).catch(err => {
+                    enviarBienvenida(userId).catch(err => {
                         console.error(err.message);
                         processingUsers.delete(userId);
                     });
                     continue;
                 }
 
-                // ELIGIENDO IDIOMA
-                if (estado.paso === 'eligiendo_idioma') {
-                    if (messageText === '1' || messageText === '2') {
+                if (estado.paso === 'bienvenida') {
+                    if (messageText === '1' || messageText === '3') {
                         processingUsers.set(userId, Date.now());
                         estado.esEspanol = messageText === '1';
-                        estado.paso = 'en_menu';
-                        enviarMenu(userId, estado.esEspanol).catch(err => {
+                        estado.paso = 'en_secuencia';
+                        enviarSecuencia(userId, estado.esEspanol).catch(err => {
                             console.error(err.message);
                             processingUsers.delete(userId);
                         });
-                    } else if (estado.intentoIdioma >= 2) {
+                    } else if (messageText === '2' || messageText === '4') {
                         processingUsers.set(userId, Date.now());
+                        estado.esEspanol = messageText === '2';
                         estado.conversacionLibre = true;
                         estado.paso = 'libre';
-                        estado.esEspanol = true;
-                        await sendText(userId,
-                            '👩🏻‍💼 Parece que necesitas ayuda personalizada.\n\nEn unos momentos uno de nuestros asesores se pondrá en contacto contigo. 🙏\n\nSerá un placer atenderte. ✨'
-                        );
-                        processingUsers.delete(userId);
+                        enviarMensajeAsesor(userId, estado.esEspanol).catch(err => {
+                            console.error(err.message);
+                            processingUsers.delete(userId);
+                        });
                     } else {
                         processingUsers.set(userId, Date.now());
-                        estado.intentoIdioma = (estado.intentoIdioma || 1) + 1;
-                        enviarSelectorIdioma(userId).catch(err => {
+                        enviarBienvenida(userId).catch(err => {
                             console.error(err.message);
                             processingUsers.delete(userId);
                         });
@@ -390,65 +375,12 @@ async function startBot() {
                     continue;
                 }
 
-                const esEspanol = estado.esEspanol;
-
-                // EN MENÚ
-                if (estado.paso === 'en_menu') {
-                    if (messageText === '1') {
-                        processingUsers.set(userId, Date.now());
-                        estado.paso = 'en_secuencia';
-                        enviarSecuencia(userId, esEspanol).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
-                        continue;
-                    }
-                    if (messageText === '2') {
-                        processingUsers.set(userId, Date.now());
-                        estado.conversacionLibre = true;
-                        estado.paso = 'libre';
-                        enviarMensajeAsesor(userId, esEspanol).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
-                        continue;
-                    }
-                    processingUsers.set(userId, Date.now());
-                    estado.intentoMenu = (estado.intentoMenu || 0) + 1;
-                    try {
-                        await sendText(userId,
-                            esEspanol
-                                ? 'Disculpa, no entendí tu mensaje 😊\n\nPor favor escribe *1* o *2* para continuar.'
-                                : 'Sorry, I did not understand your message 😊\n\nPlease type *1* or *2* to continue.'
-                        );
-                        if (estado.intentoMenu >= 2) {
-                            estado.conversacionLibre = true;
-                            estado.paso = 'libre';
-                            await sleep(500);
-                            await sendText(userId,
-                                esEspanol
-                                    ? 'Parece que necesitas ayuda personalizada 😊\nTe conecto con un asesor ahora mismo 👩‍💻'
-                                    : 'It seems you need personalized help 😊\nLet me connect you with an advisor right now 👩‍💻'
-                            );
-                        }
-                    } catch (err) {
-                        console.error(err.message);
-                    } finally {
-                        processingUsers.delete(userId);
-                    }
-                    continue;
-                }
-
-                // SECUENCIA COMPLETA
                 if (estado.secuenciaCompleta) {
                     estado.respondioPostSecuencia = true;
-                    console.log(`✅ ${userId} respondió — seguimientos cancelados`);
                     continue;
                 }
 
-                // CONVERSACIÓN LIBRE
                 if (estado.conversacionLibre || estado.paso === 'libre') {
-                    console.log(`💬 ${userId} conversación libre`);
                     continue;
                 }
 
@@ -459,37 +391,24 @@ async function startBot() {
     });
 }
 
-// SERVIDOR WEB
 app.get('/', async (req, res) => {
     if (isConnected) {
-        res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bot Conectado</title>
-        <style>body{font-family:system-ui;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}.c{background:white;padding:3rem;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center}h1{color:#667eea}.s{background:#d4edda;color:#155724;padding:1rem;border-radius:10px;margin:1rem 0}</style>
-        </head><body><div class="c"><h1>✅ Bot Conectado</h1><div class="s"><h2>🎉 Funcionando correctamente</h2></div></div></body></html>`);
+        res.send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bot Conectado</title><style>body{font-family:system-ui;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}.c{background:white;padding:3rem;border-radius:20px;text-align:center}h1{color:#667eea}.s{background:#d4edda;color:#155724;padding:1rem;border-radius:10px}</style></head><body><div class="c"><h1>✅ Bot Conectado</h1><div class="s"><h2>🎉 Funcionando correctamente</h2></div></div></body></html>');
     } else if (qrCodeData) {
-        res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="5"><title>Conectar WhatsApp</title>
-        <style>body{font-family:system-ui;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;padding:20px}.c{background:white;padding:2rem;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;max-width:600px}h1{color:#667eea}.q img{max-width:300px}.i{text-align:left;background:#f8f9fa;padding:20px;border-radius:10px;margin:20px 0}ol{margin-left:20px}li{margin:10px 0}</style>
-        </head><body><div class="c"><h1>📱 Conectar WhatsApp</h1><div class="q"><img src="${qrCodeData}" alt="QR"></div>
-        <div class="i"><ol><li>Abre WhatsApp en tu celular</li><li>Ve a Configuración ⚙️</li><li>Toca "Dispositivos Vinculados"</li><li>Escanea el QR</li></ol></div>
-        <p>🔄 Se actualiza cada 5 segundos</p></div></body></html>`);
+        res.send('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="5"><title>Conectar</title><style>body{font-family:system-ui;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}.c{background:white;padding:2rem;border-radius:20px;text-align:center;max-width:500px}h1{color:#667eea}img{max-width:280px}</style></head><body><div class="c"><h1>📱 Conectar WhatsApp</h1><img src="' + qrCodeData + '" alt="QR"><p>Se actualiza cada 5 segundos</p></div></body></html>');
     } else {
-        res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="3"><title>Iniciando...</title>
-        <style>body{font-family:system-ui;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}.c{background:white;padding:3rem;border-radius:20px;text-align:center}.l{border:8px solid #f3f3f3;border-top:8px solid #667eea;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;margin:0 auto 20px}@keyframes spin{100%{transform:rotate(360deg)}}h1{color:#667eea}</style>
-        </head><body><div class="c"><div class="l"></div><h1>⏳ Iniciando Bot...</h1></div></body></html>`);
+        res.send('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="3"><title>Iniciando</title><style>body{font-family:system-ui;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}.c{background:white;padding:3rem;border-radius:20px;text-align:center}.l{border:6px solid #f3f3f3;border-top:6px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 20px}@keyframes spin{100%{transform:rotate(360deg)}}h1{color:#667eea}</style></head><body><div class="c"><div class="l"></div><h1>⏳ Iniciando...</h1></div></body></html>');
     }
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', connected: isConnected, timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', connected: isConnected });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🤖 INVITARTES BOT v3.0 (Baileys)`);
-    console.log(`🌐 Puerto: ${PORT}`);
-    console.log('🚀 Iniciando...\n');
+    console.log('\n🤖 INVITARTES BOT v4.0 (Baileys)');
+    console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
 
-process.on('SIGTERM', async () => {
-    console.log('⏹️ Cerrando...');
-    process.exit(0);
-});
+process.on('SIGTERM', () => process.exit(0));
