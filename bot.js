@@ -12,7 +12,7 @@ let sock = null;
 
 const FIREBASE_URLS = {
     audio:        'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
-    imagenSobres: 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/da.webp?alt=media&token=687cea05-0f0a-4d07-82c7-fd28cd0297fe',
+    imagenSobres: 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/dia1.webp?alt=media&token=d42a626c-c48d-48c3-a152-3801e174be0d',
     imagenLia:    'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/lia.webp?alt=media'
 };
 
@@ -120,14 +120,14 @@ async function enviarSecuencia(userId, esEspanol) {
             esEspanol
                 ? '🎁 *Nuestros Paquetes*\n\n' +
                   '_Todas nuestras invitaciones son completamente personalizadas_ 🎨\n\n' +
-                  '*ESSENTIAL — $85*\nBasado en plantilla, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*DELUXE — $105*\nDiseño personalizado + imágenes y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*ÉLITE — $130* 👑\nTodo lo del Deluxe + invitaciones ilimitadas, íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                  '*ESSENTIAL — $85*\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*DELUXE — $105*\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*ÉLITE — $130* 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
                 : '🎁 *Our Packages*\n\n' +
                   '_All our invitations are completely personalized_ 🎨\n\n' +
-                  '*ESSENTIAL — $85*\nTemplate-based, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*DELUXE — $105*\nCustom design + photos and sending platform.\n👉 (DELUXE Example) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*ELITE — $130* 👑\nEverything in Deluxe + unlimited invitations, animated icons, premium animations, max confirmation date and more.\n👉 (ELITE Example) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                  '*ESSENTIAL — $85*\nTemplate-based, one invitation for everyone, no photos, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*DELUXE — $105*\nCustom design with personalized name and number of passes + 4 photos + music and sending platform.\n👉 (DELUXE Example) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*ELITE — $130* 👑\nEverything in Deluxe + *unlimited invitations* + up to 20 photos + animated icons, premium animations, max confirmation date and more.\n👉 (ELITE Example) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
         );
 
         await sleep(2000);
@@ -175,7 +175,6 @@ async function enviarSecuencia(userId, esEspanol) {
         }
         console.log('✅ Secuencia completa: ' + userId);
 
-        // Seguimiento 1 — 7 minutos
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado && !e.duenoAtendio) {
@@ -190,7 +189,6 @@ async function enviarSecuencia(userId, esEspanol) {
             }
         }, 7 * 60 * 1000);
 
-        // Seguimiento 2 — 14 minutos
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
@@ -205,7 +203,6 @@ async function enviarSecuencia(userId, esEspanol) {
             }
         }, 14 * 60 * 1000);
 
-        // Seguimiento 3 — 24 horas
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento3Enviado && !e.duenoAtendio) {
@@ -302,7 +299,6 @@ async function startBot() {
                 if (message.key.remoteJid?.endsWith('@g.us')) continue;
                 const userId = message.key.remoteJid;
 
-                // Si el dueño escribe, cancelar seguimientos
                 if (message.key.fromMe) {
                     const e = userStates.get(userId);
                     if (e) {
@@ -406,7 +402,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.0 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v4.1 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
