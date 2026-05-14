@@ -46,6 +46,11 @@ async function sendAudio(jid, url) {
 
 async function enviarBienvenida(userId) {
     try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) {
+            console.log('⛔ Bienvenida cancelada — dueño ya atendió a: ' + userId);
+            return;
+        }
         await sendText(userId,
             '🎉 ¡Hola! Bienvenido/a a *Invitartes*.\n\n' +
             '👇 Elige una opción *escribiendo el número*:\n\n' +
@@ -64,9 +69,15 @@ async function enviarBienvenida(userId) {
 
 async function enviarSecuencia(userId, esEspanol) {
     try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) {
+            console.log('⛔ Secuencia cancelada — dueño ya atendió a: ' + userId);
+            return;
+        }
         console.log('📤 Secuencia: ' + userId + ' | ' + (esEspanol ? 'ES' : 'EN'));
 
         await sleep(1500);
+        if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             esEspanol
                 ? '¡Hola! 👋 Te saludamos de *Invitartes*, con gusto te contamos sobre nuestras invitaciones digitales ✨\n\n' +
@@ -88,6 +99,7 @@ async function enviarSecuencia(userId, esEspanol) {
         );
 
         await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
         await sendImage(userId, FIREBASE_URLS.imagenSobres,
             esEspanol
                 ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\nEl amor más bonito merece ser celebrado de la manera más especial. Te invitamos a ser parte de este momento único que guardaremos en el corazón para siempre. 💫\n\nConfirma tu asistencia dentro de la invitación 👇\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
@@ -95,6 +107,7 @@ async function enviarSecuencia(userId, esEspanol) {
         );
 
         await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
         await sendImage(userId, FIREBASE_URLS.imagenLia,
             esEspanol
                 ? '🌸 *Ejemplo real 2 — Quinceaños* 🌸\n\n🌟 Hay momentos que marcan para siempre... los XV años son uno de ellos. 🎀\n\nUna noche mágica, llena de ilusión, luz y recuerdos que duran toda la vida. ✨\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
@@ -102,6 +115,7 @@ async function enviarSecuencia(userId, esEspanol) {
         );
 
         await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             esEspanol
                 ? '🔗 Te invito a visitar este enlace donde podrás conocer cómo funciona nuestra plataforma de administración de invitaciones y ver las características detalladas de cada paquete:\n\n👉 https://invitartes.com/caracteristicas/'
@@ -110,27 +124,31 @@ async function enviarSecuencia(userId, esEspanol) {
 
         if (esEspanol) {
             await sleep(1500);
+            if (userStates.get(userId)?.duenoAtendio) return;
             await sendText(userId, '🎧 Te explico brevemente nuestros paquetes en el siguiente audio:');
             await sleep(800);
+            if (userStates.get(userId)?.duenoAtendio) return;
             await sendAudio(userId, FIREBASE_URLS.audio);
         }
 
         await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             esEspanol
                 ? '🎁 *Nuestros Paquetes*\n\n' +
                   '_Todas nuestras invitaciones son completamente personalizadas_ 🎨\n\n' +
-                  '*ESSENTIAL — $85*\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*DELUXE — $105*\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*ÉLITE — $130* 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                  '*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
                 : '🎁 *Our Packages*\n\n' +
                   '_All our invitations are completely personalized_ 🎨\n\n' +
-                  '*ESSENTIAL — $85*\nTemplate-based, one invitation for everyone, no photos, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
-                  '*DELUXE — $105*\nCustom design with personalized name and number of passes + 4 photos + music and sending platform.\n👉 (DELUXE Example) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
-                  '*ELITE — $130* 👑\nEverything in Deluxe + *unlimited invitations* + up to 20 photos + animated icons, premium animations, max confirmation date and more.\n👉 (ELITE Example) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                  '*ESSENTIAL* — $85\nTemplate-based, one invitation for everyone, no photos, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+                  '*DELUXE* — $105\nCustom design with personalized name and number of passes + 4 photos + music and sending platform.\n👉 (DELUXE Example) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+                  '*ELITE* — $130 👑\nEverything in Deluxe + *unlimited invitations* + up to 20 photos + animated icons, premium animations, max confirmation date and more.\n👉 (ELITE Example) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
         );
 
         await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             esEspanol
                 ? 'Para iniciar con el proceso, por favor complete el siguiente formulario (Datos para sus invitaciones):\n📝 ' + FORM + '\n\n' +
@@ -159,6 +177,7 @@ async function enviarSecuencia(userId, esEspanol) {
         );
 
         await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             esEspanol
                 ? 'Si tiene alguna pregunta, por favor coméntenos, estamos para servirle ✨'
@@ -244,6 +263,8 @@ async function enviarSecuencia(userId, esEspanol) {
 
 async function enviarMensajeAsesor(userId, esEspanol) {
     try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) return;
         await sleep(1500);
         await sendText(userId,
             esEspanol
@@ -300,11 +321,23 @@ async function startBot() {
                 const userId = message.key.remoteJid;
 
                 if (message.key.fromMe) {
-                    const e = userStates.get(userId);
-                    if (e) {
+                    let e = userStates.get(userId);
+                    if (!e) {
+                        userStates.set(userId, {
+                            paso: 'bienvenida',
+                            esEspanol: null,
+                            secuenciaCompleta: false,
+                            respondioPostSecuencia: false,
+                            seguimiento1Enviado: false,
+                            seguimiento2Enviado: false,
+                            seguimiento3Enviado: false,
+                            duenoAtendio: true,
+                            conversacionLibre: false
+                        });
+                    } else {
                         e.duenoAtendio = true;
-                        console.log('👤 Dueño atendió a: ' + userId + ' — seguimientos cancelados');
                     }
+                    console.log('👤 Dueño atendió a: ' + userId + ' — flujo completamente cancelado');
                     continue;
                 }
 
@@ -340,6 +373,11 @@ async function startBot() {
                         console.error(err.message);
                         processingUsers.delete(userId);
                     });
+                    continue;
+                }
+
+                if (estado.duenoAtendio) {
+                    console.log('⛔ ' + userId + ' — dueño ya atendió, ignorando mensaje');
                     continue;
                 }
 
@@ -402,7 +440,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.1 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v4.2 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
