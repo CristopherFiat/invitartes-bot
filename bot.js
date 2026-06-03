@@ -19,7 +19,7 @@ const FIREBASE_URLS = {
 const userStates      = new Map();
 const processingUsers = new Map();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSc1KeOF_isYggQcmkydkfxQRymA8fVn1gEUXxlr8e2zVjwDNA/viewform?usp=header';
+const FORM = 'https://invitartes.com/plataforma-administracion-eventos/';
 
 async function sendText(jid, text) {
     if (!sock) return;
@@ -47,10 +47,7 @@ async function sendAudio(jid, url) {
 async function enviarBienvenida(userId) {
     try {
         const e = userStates.get(userId);
-        if (e && e.duenoAtendio) {
-            console.log('⛔ Bienvenida cancelada — dueño ya atendió a: ' + userId);
-            return;
-        }
+        if (e && e.duenoAtendio) return;
         await sendText(userId,
             '🎉 ¡Hola! Bienvenido/a a *Invitartes*.\n\n' +
             '👇 Elige una opción *escribiendo el número*:\n\n' +
@@ -70,10 +67,7 @@ async function enviarBienvenida(userId) {
 async function enviarSecuencia(userId, esEspanol) {
     try {
         const e = userStates.get(userId);
-        if (e && e.duenoAtendio) {
-            console.log('⛔ Secuencia cancelada — dueño ya atendió a: ' + userId);
-            return;
-        }
+        if (e && e.duenoAtendio) return;
         console.log('📤 Secuencia: ' + userId + ' | ' + (esEspanol ? 'ES' : 'EN'));
 
         await sleep(1500);
@@ -87,7 +81,8 @@ async function enviarSecuencia(userId, esEspanol) {
                   '💬 Recibe y ve todos los mensajes de tus invitados\n' +
                   '📸 Tus invitados pueden subir sus fotos directamente desde la invitación, ¡creando un álbum compartido en tiempo real!\n' +
                   '✅ Confirmaciones en tiempo real\n' +
-                  '🌍 Llega a todo el mundo en segundos'
+                  '🌍 Llega a todo el mundo en segundos\n' +
+                  '📊 *Plataforma privada* con contadores en tiempo real, fecha máxima de confirmación, invitaciones ilimitadas y escáner QR opcional'
                 : 'Hello! 👋 Greetings from *Invitartes*, we are happy to tell you about our digital invitations ✨\n\n' +
                   'Did you know your invitation can be a whole experience? 🤩\n\n' +
                   '🎨 Create unlimited and personalized invitations\n' +
@@ -95,7 +90,8 @@ async function enviarSecuencia(userId, esEspanol) {
                   '💬 Receive and view all messages from your guests\n' +
                   '📸 Your guests can upload their photos directly from the invitation, creating a shared album in real time!\n' +
                   '✅ Real-time confirmations\n' +
-                  '🌍 Reaches anywhere in the world in seconds'
+                  '🌍 Reaches anywhere in the world in seconds\n' +
+                  '📊 *Private platform* with real-time counters, max confirmation date, unlimited invitations and optional QR scanner'
         );
 
         await sleep(2000);
@@ -440,7 +436,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.2 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v4.4 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
