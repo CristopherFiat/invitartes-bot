@@ -12,10 +12,9 @@ let sock = null;
 
 const BASE = 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/';
 const FIREBASE_URLS = {
-    audio:           'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
-    imagenSobres:    BASE + 'dia1.webp?alt=media&token=d42a626c-c48d-48c3-a152-3801e174be0d',
-    imagenCatalogo:  BASE + 'catalogue_11zon.webp?alt=media&token=e8760350-1beb-4687-ae76-4f57fd40ac4f',
-    imagenPlataforma: BASE + 'plataforma2222_11zon.webp?alt=media&token=233482a7-aa76-43be-bd60-a338ca953d7b'
+    audio:            'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
+    imagenSobres:     BASE + 'JAlove.webp?alt=media&token=8ac373fa-f9a6-496e-aa96-7bfd20db85a1',
+    imagenCatalogo:   BASE + 'catalogue_11zon.webp?alt=media&token=e8760350-1beb-4687-ae76-4f57fd40ac4f',
 };
 
 const userStates      = new Map();
@@ -100,8 +99,8 @@ async function enviarSecuencia(userId, esEspanol) {
         if (userStates.get(userId)?.duenoAtendio) return;
         await sendImage(userId, FIREBASE_URLS.imagenSobres,
             esEspanol
-                ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\nEl amor más bonito merece ser celebrado de la manera más especial. Le invitamos a ser parte de este momento único que guardaremos en el corazón para siempre. 💫\n\nConfirme su asistencia dentro de la invitación 👇\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
-                : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\nThe most beautiful love deserves to be celebrated in the most special way. We invite you to be part of this unique moment we will keep in our hearts forever. 💫\n\nConfirm your attendance inside the invitation 👇\n🔗 https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/'
+                ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\nEl amor más bonito merece ser celebrado de la manera más especial. Le invitamos a ser parte de este momento único que guardaremos en el corazón para siempre. 💫\n\nConfirme su asistencia dentro de la invitación 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
+                : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\nThe most beautiful love deserves to be celebrated in the most special way. We invite you to be part of this unique moment we will keep in our hearts forever. 💫\n\nConfirm your attendance inside the invitation 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
         );
 
         await sleep(2000);
@@ -114,7 +113,7 @@ async function enviarSecuencia(userId, esEspanol) {
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendImage(userId, FIREBASE_URLS.imagenPlataforma,
+        await sendText(userId,
             esEspanol
                 ? '🔗 Le invitamos a visitar este enlace donde podrá conocer cómo funciona nuestra plataforma de administración de invitaciones y ver las características detalladas de cada paquete:\n\n👉 https://invitartes.com/caracteristicas/'
                 : '🔗 We invite you to visit this link where you can learn how our invitation management platform works and see the detailed features of each package:\n\n👉 https://invitartes.com/caracteristicas/'
@@ -133,17 +132,17 @@ async function enviarSecuencia(userId, esEspanol) {
         if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             esEspanol
-                ? '🎁 *Nuestros Paquetes*\n\n' +
-                  '_Todas nuestras invitaciones son completamente personalizadas_ 🎨\n\n' +
+                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n' +
+                  '*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
                   '*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
                   '*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/\n\n' +
                   '*ÉLITE PLUS* — $150 🚀\nTodo lo del Élite + página exclusiva de carga de fotos vinculada a QR imprimible + PDF A5 con el código QR para colocar en mesas o arreglos florales y subir fotos + QR editable para imprimirlo donde lo necesite.\n👉 (Ejemplo ÉLITE PLUS) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
                   '💡 *Save the Date* — $20 adicionales _(precio especial al adquirir cualquier plan)_\nPágina exclusiva como expectativa para que sus invitados sepan cuándo es el evento.'
-                : '🎁 *Our Packages*\n\n' +
-                  '_All our invitations are completely personalized_ 🎨\n\n' +
+                : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n' +
+                  '*ESSENTIAL* — $85\nTemplate-based, one invitation for everyone, no photos, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
                   '*DELUXE* — $105\nCustom design with personalized name and number of passes + 4 photos + music and sending platform.\n👉 (DELUXE Example) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
                   '*ELITE* — $130 👑\nEverything in Deluxe + *unlimited invitations* + up to 20 photos + animated icons, premium animations, max confirmation date and more.\n👉 (ELITE Example) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/\n\n' +
-                  '*ELITE PLUS* — $150 🚀\nEverything in Elite + exclusive photo upload page linked to printable QR + A5 PDF with QR code to place on tables or floral arrangements and upload photos + editable QR to print wherever you need it.\n👉 (ELITE PLUS Example) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
+                  '*ELITE PLUS* — $150 🚀\nEverything in Elite + exclusive photo upload page linked to printable QR + A5 PDF with QR code for tables or floral arrangements and photo uploads + editable QR to print wherever you need it.\n👉 (ELITE PLUS Example) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
                   '💡 *Save the Date* — $20 additional _(special price when purchasing any plan)_\nExclusive page as a teaser so your guests know when the event is.'
         );
 
@@ -214,8 +213,8 @@ async function enviarSecuencia(userId, esEspanol) {
                 try {
                     await sendText(userId,
                         esEspanol
-                            ? 'Le dejo algunos ejemplos más:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda moderna: https://invitartes.com/invitacion-a-la-boda-de-israel-y-genesis/\n• Graduación: https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\nRecuerde que también contamos con el plan *ÉLITE PLUS* que incluye página exclusiva de carga de fotos, PDF A5 con QR para mesas o arreglos florales y QR editable. 🚀\n\nPara comenzar:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
-                            : 'Here are some more examples:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Modern Wedding: https://invitartes.com/invitacion-a-la-boda-de-israel-y-genesis/\n• Graduation: https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\nRemember we also have the *ELITE PLUS* plan which includes an exclusive photo upload page, A5 PDF with QR for tables or floral arrangements and editable QR. 🚀\n\nTo get started:\n📝 ' + FORM + '\n\nI am here for you 💛'
+                            ? 'Le dejo algunos ejemplos más:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda Pasaporte: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduación: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRecuerde que también contamos con el plan *ÉLITE PLUS* que incluye página exclusiva de carga de fotos, PDF A5 con QR para mesas o arreglos florales y QR editable. 🚀\n\nPara comenzar:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
+                            : 'Here are some more examples:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Passport Wedding: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduation: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRemember we also have the *ELITE PLUS* plan which includes an exclusive photo upload page, A5 PDF with QR for tables or floral arrangements and editable QR. 🚀\n\nTo get started:\n📝 ' + FORM + '\n\nI am here for you 💛'
                     );
                     e.seguimiento2Enviado = true;
                 } catch { console.log('⚠️ Error seguimiento 2'); }
@@ -235,7 +234,7 @@ async function enviarSecuencia(userId, esEspanol) {
                               '🎵 Música y galería de fotos integradas\n' +
                               '📊 Panel para ver en tiempo real quiénes asisten\n' +
                               '🌍 Envío instantáneo a todos sus invitados\n\n' +
-                              'Todo desde *$105 USD* — con entrega en máximo 5 días.\n\n' +
+                              'Todo desde *$85 USD* — con entrega en máximo 5 días.\n\n' +
                               'Y si desea el máximo nivel, nuestro plan *ÉLITE PLUS* incluye además página exclusiva de carga de fotos, PDF A5 con QR para mesas o arreglos florales y QR editable. 🚀\n\n' +
                               '*¿Para qué evento necesita su invitación?* 📅\n\n' +
                               'Llene este formulario _(5 min)_ y comenzamos a dar vida a su invitación personalizada. 🎨✨\n📝 ' + FORM
@@ -246,7 +245,7 @@ async function enviarSecuencia(userId, esEspanol) {
                               '🎵 Music and photo gallery included\n' +
                               '📊 Real-time panel to see who is attending\n' +
                               '🌍 Instant delivery to all your guests\n\n' +
-                              'All from *$105 USD* — delivered in maximum 5 days.\n\n' +
+                              'All from *$85 USD* — delivered in maximum 5 days.\n\n' +
                               'And if you want the maximum level, our *ELITE PLUS* plan also includes an exclusive photo upload page, A5 PDF with QR for tables or floral arrangements and editable QR. 🚀\n\n' +
                               '*What event do you need your invitation for?* 📅\n\n' +
                               'Fill out this form _(5 min)_ and we will start bringing your personalized invitation to life. 🎨✨\n📝 ' + FORM
@@ -442,7 +441,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.5 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v4.6 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
