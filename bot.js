@@ -14,6 +14,7 @@ const BASE = 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebas
 const FIREBASE_URLS = {
     audio:            'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
     imagenSobres:     BASE + 'JAlove.webp?alt=media&token=8ac373fa-f9a6-496e-aa96-7bfd20db85a1',
+    imagenBoda2:      BASE + 'Captura%20de%20pantalla%202026-07-28%20a%20la(s)%209.36.07%20p.webp?alt=media&token=46331827-69a6-460e-9ff2-f07bd443220f',
     imagenCatalogo:   BASE + 'catalogue_11zon.webp?alt=media&token=e8760350-1beb-4687-ae76-4f57fd40ac4f',
 };
 
@@ -101,6 +102,14 @@ async function enviarSecuencia(userId, esEspanol) {
             esEspanol
                 ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\nEl amor más bonito merece ser celebrado de la manera más especial. Le invitamos a ser parte de este momento único que guardaremos en el corazón para siempre. 💫\n\nConfirme su asistencia dentro de la invitación 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
                 : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\nThe most beautiful love deserves to be celebrated in the most special way. We invite you to be part of this unique moment we will keep in our hearts forever. 💫\n\nConfirm your attendance inside the invitation 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendImage(userId, FIREBASE_URLS.imagenBoda2,
+            esEspanol
+                ? '💌 *Un amor que se viste de blanco y negro...*\n\nHugo & Nickole te invitan a ser parte del día más importante de sus vidas.\n\n✨ Una historia que comenzó con una mirada, y hoy se convierte en una promesa de amor eterno.\n\nDescubre todos los detalles de esta boda inolvidable, llena de elegancia y sentimiento:\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/\n\n💫 Tu presencia hará que este momento sea aún más especial.\n¡Confírmanos tu asistencia y celebremos juntos este gran "sí"! 🖤🤍'
+                : '💌 *A love dressed in black and white...*\n\nHugo & Nickole invite you to be part of the most important day of their lives.\n\n✨ A story that began with a glance, and today becomes a promise of eternal love.\n\nDiscover all the details of this unforgettable wedding, full of elegance and feeling:\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/\n\n💫 Your presence will make this moment even more special.\nConfirm your attendance and let\'s celebrate this great "yes" together! 🖤🤍'
         );
 
         await sleep(2000);
@@ -213,8 +222,8 @@ async function enviarSecuencia(userId, esEspanol) {
                 try {
                     await sendText(userId,
                         esEspanol
-                            ? 'Le dejo algunos ejemplos más:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda Pasaporte: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduación: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRecuerde que también contamos con el plan *ÉLITE PLUS* que incluye página exclusiva de carga de fotos, PDF A5 con QR para mesas o arreglos florales y QR editable. 🚀\n\nPara comenzar:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
-                            : 'Here are some more examples:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Passport Wedding: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduation: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRemember we also have the *ELITE PLUS* plan which includes an exclusive photo upload page, A5 PDF with QR for tables or floral arrangements and editable QR. 🚀\n\nTo get started:\n📝 ' + FORM + '\n\nI am here for you 💛'
+                            ? 'Le dejo algunos ejemplos más por si gusta revisarles:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda Pasaporte: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduación: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRecuerde que con el plan *ÉLITE PLUS* también le damos un PDF imprimible con QR para sus mesas: sus invitados lo escanean y suben sus fotos del evento directo a una galería exclusiva 📸🚀\n\nPara comenzar, por favor llene el siguiente formulario:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
+                            : 'Here are some more examples for you to check out:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Passport Wedding: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduation: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRemember that with the *ELITE PLUS* plan we also give you a printable PDF with QR for your tables: your guests scan it and upload their photos from the event directly to an exclusive gallery 📸🚀\n\nTo get started, please fill out the following form:\n📝 ' + FORM + '\n\nI am here for you 💛'
                     );
                     e.seguimiento2Enviado = true;
                 } catch { console.log('⚠️ Error seguimiento 2'); }
@@ -227,28 +236,26 @@ async function enviarSecuencia(userId, esEspanol) {
                 try {
                     await sendText(userId,
                         esEspanol
-                            ? '¡Hola! 🌸 Soy *Carolina* de *Invitartes*.\n\n' +
-                              'Quería recordarle que con nuestras invitaciones digitales puede tener:\n\n' +
+                            ? '¡Hola! 👋 Soy *Carolina* de *Invitartes*.\n\n' +
+                              'Ayer nos escribió preguntando sobre nuestras invitaciones digitales y quería saber, ¿pudo revisar los paquetes? ¿Le quedó alguna duda o necesita que le explique algo? 😊\n\n' +
+                              'Con nuestras invitaciones puede tener:\n\n' +
                               '💌 Diseño único según su temática\n' +
                               '✅ Confirmaciones automáticas de asistencia\n' +
                               '🎵 Música y galería de fotos integradas\n' +
                               '📊 Panel para ver en tiempo real quiénes asisten\n' +
                               '🌍 Envío instantáneo a todos sus invitados\n\n' +
-                              'Todo desde *$85 USD* — con entrega en máximo 5 días.\n\n' +
-                              'Y si desea el máximo nivel, nuestro plan *ÉLITE PLUS* incluye además página exclusiva de carga de fotos, PDF A5 con QR para mesas o arreglos florales y QR editable. 🚀\n\n' +
-                              '*¿Para qué evento necesita su invitación?* 📅\n\n' +
-                              'Llene este formulario _(5 min)_ y comenzamos a dar vida a su invitación personalizada. 🎨✨\n📝 ' + FORM
-                            : 'Hello! 🌸 I am *Carolina* from *Invitartes*.\n\n' +
-                              'I wanted to remind you that with our digital invitations you can have:\n\n' +
+                              'Todo desde *$85 USD* — con entrega en máximo 5 días. Y con el plan *ÉLITE PLUS* también le damos un PDF imprimible con QR para sus mesas: sus invitados lo escanean y suben sus fotos del evento directo a una galería exclusiva. 📸🚀\n\n' +
+                              'Cuando esté listo/a, llene este formulario y comenzamos:\n📝 ' + FORM + ' 🎨✨'
+                            : 'Hello! 👋 I am *Carolina* from *Invitartes*.\n\n' +
+                              'Yesterday you wrote to us asking about our digital invitations and I wanted to check in — were you able to review the packages? Do you have any questions or need me to explain anything? 😊\n\n' +
+                              'With our invitations you can have:\n\n' +
                               '💌 Unique design based on your theme\n' +
                               '✅ Automatic attendance confirmations\n' +
                               '🎵 Music and photo gallery included\n' +
                               '📊 Real-time panel to see who is attending\n' +
                               '🌍 Instant delivery to all your guests\n\n' +
-                              'All from *$85 USD* — delivered in maximum 5 days.\n\n' +
-                              'And if you want the maximum level, our *ELITE PLUS* plan also includes an exclusive photo upload page, A5 PDF with QR for tables or floral arrangements and editable QR. 🚀\n\n' +
-                              '*What event do you need your invitation for?* 📅\n\n' +
-                              'Fill out this form _(5 min)_ and we will start bringing your personalized invitation to life. 🎨✨\n📝 ' + FORM
+                              'All from *$85 USD* — delivered in maximum 5 days. And with the *ELITE PLUS* plan we also give you a printable PDF with QR for your tables: your guests scan it and upload their event photos directly to an exclusive gallery. 📸🚀\n\n' +
+                              'When you are ready, fill out this form and we get started:\n📝 ' + FORM + ' 🎨✨'
                     );
                     e.seguimiento3Enviado = true;
                 } catch { console.log('⚠️ Error seguimiento 3'); }
@@ -441,7 +448,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.6 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v4.7 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
