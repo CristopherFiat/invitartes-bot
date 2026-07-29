@@ -14,7 +14,7 @@ const BASE = 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebas
 const FIREBASE_URLS = {
     audio:            'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
     imagenSobres:     BASE + 'JAlove.webp?alt=media&token=8ac373fa-f9a6-496e-aa96-7bfd20db85a1',
-    imagenBoda2:      'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/Captura%20de%20pantalla%202026-07-28%20a%20la(s)%209.36.07%E2%80%AFp.webp?alt=media&token=46331827-69a6-460e-9ff2-f07bd443220f',
+    imagenBoda2:      BASE + 'negro.webp?alt=media&token=89dd36ae-6e03-45d9-ae4a-8bba71a02315',
     imagenCatalogo:   BASE + 'catalogue_11zon.webp?alt=media&token=e8760350-1beb-4687-ae76-4f57fd40ac4f',
 };
 
