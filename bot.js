@@ -13,7 +13,7 @@ let sock = null;
 const BASE = 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/';
 const FIREBASE_URLS = {
     audio:             'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
-    imagenPlataformas: BASE + 'plataformas.webp?alt=media&token=63d5b996-47f4-49cf-ab78-e769cca4765d',
+    imagenPlataformas: BASE + 'plataformas_11zon_11zon%20(1).webp?alt=media&token=ba0c3864-e844-4339-9486-efabeb5528a2',
     imagenSobres:      BASE + 'JAlove.webp?alt=media&token=8ac373fa-f9a6-496e-aa96-7bfd20db85a1',
     imagenBoda2:       BASE + 'negro.webp?alt=media&token=89dd36ae-6e03-45d9-ae4a-8bba71a02315',
     imagenCatalogo:    BASE + 'catalogue_11zon.webp?alt=media&token=e8760350-1beb-4687-ae76-4f57fd40ac4f',
@@ -171,7 +171,6 @@ async function enviarSecuenciaXV(userId) {
         }
         console.log('✅ Secuencia XV completa: ' + userId);
 
-        // Seguimiento 1 — 7 min: Sheyla
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado && !e.duenoAtendio) {
@@ -185,7 +184,6 @@ async function enviarSecuenciaXV(userId) {
             }
         }, 7 * 60 * 1000);
 
-        // Seguimiento 2 — 17 min: pregunta natural
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
@@ -199,7 +197,6 @@ async function enviarSecuenciaXV(userId) {
             }
         }, 17 * 60 * 1000);
 
-        // Seguimiento 3 — 24 horas
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento3Enviado && !e.duenoAtendio) {
@@ -212,7 +209,6 @@ async function enviarSecuenciaXV(userId) {
             }
         }, 24 * 60 * 60 * 1000);
 
-        // Seguimiento 4 — 24h + 10 min
         setTimeout(async () => {
             const e = userStates.get(userId);
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento3Enviado && !e.seguimiento4Enviado && !e.duenoAtendio) {
@@ -635,7 +631,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v5.1 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v5.2 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
