@@ -12,10 +12,14 @@ let sock = null;
 
 const BASE = 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/';
 const FIREBASE_URLS = {
-    audio:            'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
-    imagenSobres:     BASE + 'JAlove.webp?alt=media&token=8ac373fa-f9a6-496e-aa96-7bfd20db85a1',
-    imagenBoda2:      BASE + 'negro.webp?alt=media&token=89dd36ae-6e03-45d9-ae4a-8bba71a02315',
-    imagenCatalogo:   BASE + 'catalogue_11zon.webp?alt=media&token=e8760350-1beb-4687-ae76-4f57fd40ac4f',
+    audio:             'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/AudioExplicativo.mp3?alt=media',
+    imagenPlataformas: BASE + 'plataformas.webp?alt=media&token=63d5b996-47f4-49cf-ab78-e769cca4765d',
+    imagenSobres:      BASE + 'JAlove.webp?alt=media&token=8ac373fa-f9a6-496e-aa96-7bfd20db85a1',
+    imagenBoda2:       BASE + 'negro.webp?alt=media&token=89dd36ae-6e03-45d9-ae4a-8bba71a02315',
+    imagenCatalogo:    BASE + 'catalogue_11zon.webp?alt=media&token=e8760350-1beb-4687-ae76-4f57fd40ac4f',
+    imagenLucy:        BASE + '16c-scaled_11zon_11zon.webp?alt=media&token=12a0f8e3-6d5b-416c-b70d-7b1ee98d4d0a',
+    imagenRafaela:     BASE + '15-scaled_11zon_11zon.webp?alt=media&token=e8ac5e53-6282-4ba8-8735-02d57ffc8622',
+    imagenSheyla:      BASE + '11c-scaled_11zon_11zon.webp?alt=media&token=3c729c2e-aaae-41cb-9c7d-d22e70389dc3',
 };
 
 const userStates      = new Map();
@@ -50,17 +54,188 @@ async function enviarBienvenida(userId) {
     try {
         const e = userStates.get(userId);
         if (e && e.duenoAtendio) return;
-        await sendText(userId,
+        await sendImage(userId, FIREBASE_URLS.imagenPlataformas,
             '🎉 ¡Hola! Bienvenido/a a *Invitartes*.\n\n' +
+            '¡Qué emoción! 👑💕 Sabemos que organizar un evento especial puede ser emocionante, pero también traer muchas dudas. Por eso en *Invitartes* no solo diseñamos invitaciones digitales — te ofrecemos la *plataforma más completa de gestión de eventos del mercado*, única en su tipo. 💛\n\n' +
             '👇 Elija una opción *escribiendo el número*:\n\n' +
-            '1️⃣ Explíqueme sobre las invitaciones digitales\n' +
-            '2️⃣ Hablar con un asesor\n' +
-            '3️⃣ Tell me about digital invitations 🇺🇸\n' +
-            '4️⃣ Speak with an advisor 🇺🇸\n\n' +
-            '✍️ Escriba solo el número *1*, *2*, *3* o *4* para continuar.'
+            '1️⃣ Quiero invitaciones para mis XV años 👑\n' +
+            '2️⃣ Quiero invitaciones para Boda 💍\n' +
+            '3️⃣ Quiero invitaciones para otro evento ✨\n' +
+            '4️⃣ I want digital invitations 🇺🇸\n\n' +
+            '✍️ Escriba solo el número para continuar.'
         );
     } catch (err) {
         console.error('❌ Error bienvenida:', err.message);
+    } finally {
+        processingUsers.delete(userId);
+    }
+}
+
+async function enviarSecuenciaXV(userId) {
+    try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) return;
+        console.log('📤 Secuencia XV: ' + userId);
+
+        await sleep(1500);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId,
+            '¡Qué emoción! 👑💕\n\n' +
+            'Sabemos que organizar unos XV puede ser emocionante, pero también traer muchas dudas y organización.\n\n' +
+            'Por eso en *Invitartes* no solo diseñamos invitaciones digitales.\n\n' +
+            'Le ofrecemos una plataforma que le ayuda a mantener todo bajo control para que pueda disfrutar mucho más este momento junto a su hija. 💛'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId,
+            'Con nuestra plataforma podrá:\n\n' +
+            '✅ Confirmaciones de asistencia en tiempo real.\n' +
+            '✅ Control total de invitados.\n' +
+            '✅ Invitados informados desde un solo lugar.\n' +
+            '✅ Invitación digital totalmente personalizada.\n' +
+            '✅ Galería colaborativa de fotografías.\n' +
+            '✅ Reportes y estadísticas.\n\n' +
+            '✨ Además, contamos con funciones exclusivas desarrolladas por *Invitartes* que preferimos explicar durante la asesoría, ya que forman parte del valor diferencial de nuestra plataforma — *única en el mercado*. 👑'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendImage(userId, FIREBASE_URLS.imagenLucy,
+            '*Ejemplo 1* 🌸✨\n\nÉrase una vez una princesa que soñaba con esta noche... y hoy ese sueño se hace realidad. Lucy te invita a vivir su cuento de hadas. 👑\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-oficial/'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendImage(userId, FIREBASE_URLS.imagenRafaela,
+            '*Ejemplo 2* 🌸✨\n\nHabía una vez una historia que comenzaba con "Érase una vez"... Rafaela te invita a descubrir cómo continúa. 👑💕\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anios-rafaela/'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendImage(userId, FIREBASE_URLS.imagenCatalogo,
+            '¡Con todo cariño le enviamos nuestro catálogo! 🎉 para que pueda revisar otros modelos que se ajusten a la temática de sus XV. 📋✨\n\nÉchele un vistazo: https://invitartes.com/catalogo/\n\nPuede elegir un modelo del catálogo y lo adaptamos a su temática, o creamos un diseño único según sus colores e ideas. 💛'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId,
+            '🔗 Le invitamos a visitar este enlace donde podrá conocer cómo funciona nuestra plataforma y ver las características detalladas de cada paquete:\n\n👉 https://invitartes.com/caracteristicas/'
+        );
+
+        await sleep(1500);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId, '🎧 Le explicamos brevemente nuestros paquetes en el siguiente audio:');
+        await sleep(800);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendAudio(userId, FIREBASE_URLS.audio);
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId,
+            '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n' +
+            '*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/muestra-serenitas-invitartes-essential/\n\n' +
+            '*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-baby-shower-muestra/\n\n' +
+            '*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/\n\n' +
+            '*ÉLITE PLUS* — $150 🚀\nTodo lo del Élite + página exclusiva de carga de fotos vinculada a QR imprimible + PDF A5 con el código QR para colocar en mesas o arreglos florales y subir fotos + QR editable para imprimirlo donde lo necesite.\n👉 (Ejemplo ÉLITE PLUS) https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n\n' +
+            '💡 *Save the Date* — $20 adicionales _(precio especial al adquirir cualquier plan)_\nPágina exclusiva como expectativa para que sus invitados sepan cuándo es el evento.'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId,
+            'Para iniciar con el proceso, por favor complete el siguiente formulario (Datos para sus invitaciones):\n📝 ' + FORM + '\n\n' +
+            'O si lo prefiere, también puede enviarnos por WhatsApp los detalles y la temática que desea para sus invitaciones.\n\n' +
+            'Una vez recibamos la información, nos comprometemos a entregarle las invitaciones en un plazo máximo de *5 días*.\n\n' +
+            'Empezamos con un abono inicial de *$10*, que puede realizar al siguiente número de cuenta:\n\n' +
+            '🏦 *Banco de Loja*\n' +
+            'Número de cuenta: *2904553231*\n' +
+            'Cédula: *1104753122*\n' +
+            'Tipo de cuenta: Cuenta de ahorros _(cuenta activa)_\n' +
+            'Titular: *ALVAREZ GRANDA, GUIDO CRISTOPHER*\n\n' +
+            'El saldo restante podrá ser cancelado en el momento de la entrega de sus invitaciones. ✨'
+        );
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId, 'Si tiene alguna pregunta, por favor coméntenos, estamos para servirle ✨');
+
+        const estado = userStates.get(userId);
+        if (estado) {
+            estado.secuenciaCompleta      = true;
+            estado.respondioPostSecuencia = false;
+            estado.seguimiento1Enviado    = false;
+            estado.seguimiento2Enviado    = false;
+            estado.seguimiento3Enviado    = false;
+            estado.seguimiento4Enviado    = false;
+        }
+        console.log('✅ Secuencia XV completa: ' + userId);
+
+        // Seguimiento 1 — 7 min: Sheyla
+        setTimeout(async () => {
+            const e = userStates.get(userId);
+            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado && !e.duenoAtendio) {
+                try {
+                    await sendImage(userId, FIREBASE_URLS.imagenSheyla,
+                        '¡Ah, mira! 👑✨ Si necesita algo temático, le comparto este ejemplo. Coméntenos y personalizamos todo según la temática o evento que tenga en mente.\n\n' +
+                        '*Ejemplo 3* 🌸✨\nEn un reino no muy lejano, una princesa está a punto de cumplir su sueño... Sheyla quiere que seas parte de su cuento. 👑✨\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-sheyla-muestra/'
+                    );
+                    e.seguimiento1Enviado = true;
+                } catch { console.log('⚠️ Error seguimiento XV 1'); }
+            }
+        }, 7 * 60 * 1000);
+
+        // Seguimiento 2 — 17 min: pregunta natural
+        setTimeout(async () => {
+            const e = userStates.get(userId);
+            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
+                try {
+                    await sendText(userId,
+                        '¡Hola! 👋 Soy *Carolina* de *Invitartes*.\n\n' +
+                        '¿Pudo revisar los ejemplos? ¿Le quedó alguna duda o tiene alguna pregunta sobre los paquetes? 😊'
+                    );
+                    e.seguimiento2Enviado = true;
+                } catch { console.log('⚠️ Error seguimiento XV 2'); }
+            }
+        }, 17 * 60 * 1000);
+
+        // Seguimiento 3 — 24 horas
+        setTimeout(async () => {
+            const e = userStates.get(userId);
+            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento3Enviado && !e.duenoAtendio) {
+                try {
+                    await sendText(userId,
+                        '¿Cómo está?.. Ayer nos escribió preguntando sobre las invitaciones para XV años y quería saber, ¿pudo revisarlos?.. Si le quedó alguna duda coméntenos sin problema, estamos para servirle 😊'
+                    );
+                    e.seguimiento3Enviado = true;
+                } catch { console.log('⚠️ Error seguimiento XV 3'); }
+            }
+        }, 24 * 60 * 60 * 1000);
+
+        // Seguimiento 4 — 24h + 10 min
+        setTimeout(async () => {
+            const e = userStates.get(userId);
+            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento3Enviado && !e.seguimiento4Enviado && !e.duenoAtendio) {
+                try {
+                    await sendText(userId,
+                        'Aprovecho para contarle por qué somos la plataforma más completa para administrar el evento de su hija 🏆✨\n\n' +
+                        'Con sus credenciales personalizadas, todo lo maneja desde un solo lugar:\n' +
+                        '👥 Lista de invitados y confirmaciones automáticas\n' +
+                        '📸 Galería de fotos compartida\n' +
+                        '📊 Estadísticas en tiempo real de quién ya confirmó\n\n' +
+                        'Así usted se enfoca en disfrutar los XV años, no en perseguir confirmaciones por WhatsApp 👑💛\n\n' +
+                        'Planes desde *$85 USD*, entrega máx. 5 días. Con el plan *ÉLITE PLUS* incluye PDF con QR para las mesas: sus invitados escanean y suben sus fotos del evento directo a la galería exclusiva 📲🚀\n\n' +
+                        'Si quiere, llenamos el formulario juntos ahora mismo y le aparto su fecha de entrega:\n' +
+                        '📝 ' + FORM + '\n\n' +
+                        '¿Alguna pregunta antes de empezar? Aquí estoy 😊'
+                    );
+                    e.seguimiento4Enviado = true;
+                } catch { console.log('⚠️ Error seguimiento XV 4'); }
+            }
+        }, (24 * 60 * 60 * 1000) + (10 * 60 * 1000));
+
+    } catch (err) {
+        console.error('❌ Error secuencia XV:', err.message);
     } finally {
         processingUsers.delete(userId);
     }
@@ -109,7 +284,7 @@ async function enviarSecuencia(userId, esEspanol) {
         await sendImage(userId, FIREBASE_URLS.imagenBoda2,
             esEspanol
                 ? '💌 *Un amor que se viste de blanco y negro...*\n\nHugo & Nickole te invitan a ser parte del día más importante de sus vidas.\n\n✨ Una historia que comenzó con una mirada, y hoy se convierte en una promesa de amor eterno.\n\nDescubre todos los detalles de esta boda inolvidable, llena de elegancia y sentimiento:\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/\n\n💫 Tu presencia hará que este momento sea aún más especial.\n¡Confírmanos tu asistencia y celebremos juntos este gran "sí"! 🖤🤍'
-                : '💌 *A love dressed in black and white...*\n\nHugo & Nickole invite you to be part of the most important day of their lives.\n\n✨ A story that began with a glance, and today becomes a promise of eternal love.\n\nDiscover all the details of this unforgettable wedding, full of elegance and feeling:\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/\n\n💫 Your presence will make this moment even more special.\nConfirm your attendance and let\'s celebrate this great "yes" together! 🖤🤍'
+                : '💌 *A love dressed in black and white...*\n\nHugo & Nickole invite you to be part of the most important day of their lives.\n\n✨ A story that began with a glance, and today becomes a promise of eternal love.\n\nDiscover all the details of this unforgettable wedding:\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/\n\n💫 Your presence will make this moment even more special. 🖤🤍'
         );
 
         await sleep(2000);
@@ -223,7 +398,7 @@ async function enviarSecuencia(userId, esEspanol) {
                     await sendText(userId,
                         esEspanol
                             ? 'Le dejo algunos ejemplos más por si gusta revisarles:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda Pasaporte: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduación: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRecuerde que con el plan *ÉLITE PLUS* también le damos un PDF imprimible con QR para sus mesas: sus invitados lo escanean y suben sus fotos del evento directo a una galería exclusiva 📸🚀\n\nPara comenzar, por favor llene el siguiente formulario:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
-                            : 'Here are some more examples for you to check out:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Passport Wedding: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduation: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRemember that with the *ELITE PLUS* plan we also give you a printable PDF with QR for your tables: your guests scan it and upload their photos from the event directly to an exclusive gallery 📸🚀\n\nTo get started, please fill out the following form:\n📝 ' + FORM + '\n\nI am here for you 💛'
+                            : 'Here are some more examples for you to check out:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Passport Wedding: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduation: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nRemember that with the *ELITE PLUS* plan we also give you a printable PDF with QR for your tables 📸🚀\n\nTo get started:\n📝 ' + FORM + '\n\nI am here for you 💛'
                     );
                     e.seguimiento2Enviado = true;
                 } catch { console.log('⚠️ Error seguimiento 2'); }
@@ -244,7 +419,7 @@ async function enviarSecuencia(userId, esEspanol) {
                               '🎵 Música y galería de fotos integradas\n' +
                               '📊 Panel para ver en tiempo real quiénes asisten\n' +
                               '🌍 Envío instantáneo a todos sus invitados\n\n' +
-                              'Todo desde *$85 USD* — con entrega en máximo 5 días. Y con el plan *ÉLITE PLUS* también le damos un PDF imprimible con QR para sus mesas: sus invitados lo escanean y suben sus fotos del evento directo a una galería exclusiva. 📸🚀\n\n' +
+                              'Todo desde *$85 USD* — con entrega en máximo 5 días. Y con el plan *ÉLITE PLUS* también le damos un PDF imprimible con QR para sus mesas. 📸🚀\n\n' +
                               'Cuando esté listo/a, llene este formulario y comenzamos:\n📝 ' + FORM + ' 🎨✨'
                             : 'Hello! 👋 I am *Carolina* from *Invitartes*.\n\n' +
                               'Yesterday you wrote to us asking about our digital invitations and I wanted to check in — were you able to review the packages? Do you have any questions or need me to explain anything? 😊\n\n' +
@@ -254,7 +429,7 @@ async function enviarSecuencia(userId, esEspanol) {
                               '🎵 Music and photo gallery included\n' +
                               '📊 Real-time panel to see who is attending\n' +
                               '🌍 Instant delivery to all your guests\n\n' +
-                              'All from *$85 USD* — delivered in maximum 5 days. And with the *ELITE PLUS* plan we also give you a printable PDF with QR for your tables: your guests scan it and upload their event photos directly to an exclusive gallery. 📸🚀\n\n' +
+                              'All from *$85 USD* — delivered in maximum 5 days. And with the *ELITE PLUS* plan we also give you a printable PDF with QR for your tables. 📸🚀\n\n' +
                               'When you are ready, fill out this form and we get started:\n📝 ' + FORM + ' 🎨✨'
                     );
                     e.seguimiento3Enviado = true;
@@ -334,11 +509,13 @@ async function startBot() {
                         userStates.set(userId, {
                             paso: 'bienvenida',
                             esEspanol: null,
+                            tipoEvento: null,
                             secuenciaCompleta: false,
                             respondioPostSecuencia: false,
                             seguimiento1Enviado: false,
                             seguimiento2Enviado: false,
                             seguimiento3Enviado: false,
+                            seguimiento4Enviado: false,
                             duenoAtendio: true,
                             conversacionLibre: false
                         });
@@ -369,11 +546,13 @@ async function startBot() {
                     userStates.set(userId, {
                         paso: 'bienvenida',
                         esEspanol: null,
+                        tipoEvento: null,
                         secuenciaCompleta: false,
                         respondioPostSecuencia: false,
                         seguimiento1Enviado: false,
                         seguimiento2Enviado: false,
                         seguimiento3Enviado: false,
+                        seguimiento4Enviado: false,
                         duenoAtendio: false,
                         conversacionLibre: false
                     });
@@ -390,20 +569,28 @@ async function startBot() {
                 }
 
                 if (estado.paso === 'bienvenida') {
-                    if (messageText === '1' || messageText === '3') {
+                    if (messageText === '1') {
                         processingUsers.set(userId, Date.now());
-                        estado.esEspanol = messageText === '1';
+                        estado.esEspanol = true;
+                        estado.tipoEvento = 'xv';
                         estado.paso = 'en_secuencia';
-                        enviarSecuencia(userId, estado.esEspanol).catch(err => {
+                        enviarSecuenciaXV(userId).catch(err => {
                             console.error(err.message);
                             processingUsers.delete(userId);
                         });
-                    } else if (messageText === '2' || messageText === '4') {
+                    } else if (messageText === '2' || messageText === '3') {
                         processingUsers.set(userId, Date.now());
-                        estado.esEspanol = messageText === '2';
-                        estado.conversacionLibre = true;
-                        estado.paso = 'libre';
-                        enviarMensajeAsesor(userId, estado.esEspanol).catch(err => {
+                        estado.esEspanol = true;
+                        estado.paso = 'en_secuencia';
+                        enviarSecuencia(userId, true).catch(err => {
+                            console.error(err.message);
+                            processingUsers.delete(userId);
+                        });
+                    } else if (messageText === '4') {
+                        processingUsers.set(userId, Date.now());
+                        estado.esEspanol = false;
+                        estado.paso = 'en_secuencia';
+                        enviarSecuencia(userId, false).catch(err => {
                             console.error(err.message);
                             processingUsers.delete(userId);
                         });
@@ -448,7 +635,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v4.8 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v5.1 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
