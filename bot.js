@@ -71,6 +71,44 @@ async function enviarBienvenida(userId) {
     }
 }
 
+async function enviarMenuRepetido(userId) {
+    try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) return;
+        await sendText(userId,
+            '👇 Por favor elija una de las siguientes opciones *escribiendo el número*:\n\n' +
+            '1️⃣ Quiero invitaciones para mis XV años 👑\n' +
+            '2️⃣ Quiero invitaciones para Boda 💍\n' +
+            '3️⃣ Quiero invitaciones para otro evento ✨\n' +
+            '4️⃣ I want digital invitations 🇺🇸\n\n' +
+            '✍️ Escriba solo el número para continuar.'
+        );
+    } catch (err) {
+        console.error('❌ Error menú repetido:', err.message);
+    } finally {
+        processingUsers.delete(userId);
+    }
+}
+
+async function enviarMensajeAsesorFinal(userId) {
+    try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) return;
+        await sendText(userId,
+            '👩🏻‍💼 No hay problema, en unos minutos uno de nuestros asesores se comunicará con usted.\n\nEstamos para servirle, que tenga un excelente día. ✨'
+        );
+        const estado = userStates.get(userId);
+        if (estado) {
+            estado.conversacionLibre = true;
+            estado.paso = 'libre';
+        }
+    } catch (err) {
+        console.error('❌ Error mensaje asesor final:', err.message);
+    } finally {
+        processingUsers.delete(userId);
+    }
+}
+
 async function enviarSecuenciaXV(userId) {
     try {
         const e = userStates.get(userId);
@@ -189,13 +227,12 @@ async function enviarSecuenciaXV(userId) {
             if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
                 try {
                     await sendText(userId,
-                        '¡Hola! 👋 Soy *Carolina* de *Invitartes*.\n\n' +
-                        '¿Pudo revisar los ejemplos? ¿Le quedó alguna duda o tiene alguna pregunta sobre los paquetes? 😊'
+                        '¡Hola! 👋 Soy *Carolina* de *Invitartes*, ¿tiene alguna pregunta sobre los paquetes?\n\nEstoy aquí para ayudarle ✨'
                     );
                     e.seguimiento2Enviado = true;
                 } catch { console.log('⚠️ Error seguimiento XV 2'); }
             }
-        }, 17 * 60 * 1000);
+        }, 14 * 60 * 1000);
 
         setTimeout(async () => {
             const e = userStates.get(userId);
@@ -506,6 +543,7 @@ async function startBot() {
                             paso: 'bienvenida',
                             esEspanol: null,
                             tipoEvento: null,
+                            intentoMenu: 0,
                             secuenciaCompleta: false,
                             respondioPostSecuencia: false,
                             seguimiento1Enviado: false,
@@ -543,6 +581,7 @@ async function startBot() {
                         paso: 'bienvenida',
                         esEspanol: null,
                         tipoEvento: null,
+                        intentoMenu: 0,
                         secuenciaCompleta: false,
                         respondioPostSecuencia: false,
                         seguimiento1Enviado: false,
@@ -591,11 +630,22 @@ async function startBot() {
                             processingUsers.delete(userId);
                         });
                     } else {
+                        // No escribió un número válido
+                        estado.intentoMenu = (estado.intentoMenu || 0) + 1;
                         processingUsers.set(userId, Date.now());
-                        enviarBienvenida(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        if (estado.intentoMenu === 1) {
+                            // Primera vez: reenviar menú
+                            enviarMenuRepetido(userId).catch(err => {
+                                console.error(err.message);
+                                processingUsers.delete(userId);
+                            });
+                        } else {
+                            // Segunda vez: mensaje de asesor y cerrar flujo
+                            enviarMensajeAsesorFinal(userId).catch(err => {
+                                console.error(err.message);
+                                processingUsers.delete(userId);
+                            });
+                        }
                     }
                     continue;
                 }
@@ -631,7 +681,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v5.2 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v5.4 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
