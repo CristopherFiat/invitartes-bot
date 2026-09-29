@@ -32,14 +32,22 @@ const FORM = 'https://invitartes.com/plataforma-administracion-eventos/';
 const GUIA = 'https://drive.google.com/file/d/1-20hT7sOjSJSd6poqRZb3jfYWB3c4ew5/view?usp=sharing';
 const PAYPAL = 'https://paypal.me/CristopherAlvarezG?locale.x=es_XC&country.x=EC';
 
-function esMexico(userId) {
-    return userId && userId.startsWith('52');
+function esMexico(phone) {
+    return phone && phone.startsWith('52') && phone.length >= 12 && phone.length <= 13;
 }
 
-function esAngloparlante(userId) {
-    const prefijos = ['1', '44', '61', '64', '353', '27'];
-    if (!userId) return false;
-    return prefijos.some(p => userId.startsWith(p));
+function esAngloparlante(phone) {
+    // Prefijo + longitud exacta para evitar falsos positivos
+    const prefijos = [
+        { code: '1', len: 11 },    // USA/Canada
+        { code: '44', len: 12 },   // UK
+        { code: '61', len: 11 },   // Australia
+        { code: '64', len: 11 },   // Nueva Zelanda
+        { code: '353', len: 12 },  // Irlanda
+        { code: '27', len: 11 },   // Sudáfrica
+    ];
+    if (!phone) return false;
+    return prefijos.some(p => phone.startsWith(p.code) && phone.length === p.len);
 }
 
 function esKeywordGuia(text) {
@@ -49,8 +57,8 @@ function esKeywordGuia(text) {
            t.includes('guia gratuita') || t.includes('guía gratuita');
 }
 
-function getDatosBancarios(userId, esEspanol) {
-    if (esMexico(userId)) {
+function getDatosBancarios(phone, esEspanol) {
+    if (esMexico(phone)) {
         return esEspanol
             ? 'Podemos empezar con un abono inicial de *$170 pesos MXN*, que puede realizar al siguiente número:\n\n' +
               '🏦 *BBVA Bancomer*\n' +
@@ -65,8 +73,8 @@ function getDatosBancarios(userId, esEspanol) {
               'Or via PayPal:\n👉 ' + PAYPAL + '\n\n' +
               'The remaining balance can be paid at the time of delivery of your invitations. ✨';
     } else if (!esEspanol) {
-        return 'We can start with an initial deposit of *$10*, which you can send via:\n\n' +
-               'Or via PayPal:\n👉 ' + PAYPAL + '\n\n' +
+        return 'We can start with an initial deposit of *$10*.\n\n' +
+               'Via PayPal:\n👉 ' + PAYPAL + '\n\n' +
                'The remaining balance can be paid at the time of delivery of your invitations. ✨';
     } else {
         return 'Empezamos con un abono inicial de *$10*, que puede realizar al siguiente número de cuenta:\n\n' +
@@ -189,29 +197,162 @@ async function enviarMensajeAsesorFinal(userId) {
             '👩🏻‍💼 No hay problema, en unos minutos uno de nuestros asesores se comunicará con usted.\n\nEstamos para servirle, que tenga un excelente día. ✨'
         );
         const estado = userStates.get(userId);
-        if (estado) {
-            estado.conversacionLibre = true;
-            estado.paso = 'libre';
-        }
+        if (estado) { estado.conversacionLibre = true; estado.paso = 'libre'; }
     } catch (err) {
-        console.error('❌ Error mensaje asesor final:', err.message);
+        console.error('❌ Error asesor final:', err.message);
     } finally {
         processingUsers.delete(userId);
     }
 }
 
-async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento) {
+async function enviarGuiaGratuita(userId, esEspanol) {
+    try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) return;
+        await sendText(userId,
+            '¡Aquí la tienes! 🎉\n\n📖 ' + GUIA + '\n\nLéela con calma — son 5 minutos que te van a ahorrar semanas de estrés.'
+        );
+        await sleep(5000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId,
+            'Por cierto, ¿para qué evento estás organizando? Así te puedo ayudar mejor 😊\n\n' +
+            '1️⃣ Boda\n2️⃣ XV Años\n3️⃣ Otro evento\n\n✍️ Escriba solo el número para continuar.'
+        );
+        const estado = userStates.get(userId);
+        if (estado) estado.paso = 'guia_segmento';
+    } catch (err) {
+        console.error('❌ Error guía:', err.message);
+    } finally {
+        processingUsers.delete(userId);
+    }
+}
+
+async function enviarPuenteEmocional(userId, tipoEvento, esEspanol) {
+    try {
+        const e = userStates.get(userId);
+        if (e && e.duenoAtendio) return;
+
+        let puente = '';
+        if (tipoEvento === 'boda') puente = '¡Qué emoción! 💒 Sabemos lo que es querer que cada detalle quede perfecto — sobre todo cuando es algo tan importante como tu boda.';
+        else if (tipoEvento === 'xv') puente = '¡Qué bonito! 🎀 Los XV son un día que se recuerda para siempre — y cada detalle cuenta.';
+        else puente = '¡Genial! 🎉 Sea el evento que sea, merece una invitación que trabaje por ti.';
+
+        await sendText(userId, puente);
+        await sleep(3000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+
+        if (tipoEvento === 'boda') {
+            await sendImage(userId, FIREBASE_URLS.imagenSobres, '✨ *Ejemplo 1 — Boda* ✨\n\n💍 Juan Pablo & Adriana\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/');
+            await sleep(2000);
+            if (userStates.get(userId)?.duenoAtendio) return;
+            await sendImage(userId, FIREBASE_URLS.imagenBoda2, '💌 *Ejemplo 2 — Boda* ✨\n\nHugo & Nickole\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/');
+        } else if (tipoEvento === 'xv') {
+            await sendImage(userId, FIREBASE_URLS.imagenLucy, '*Ejemplo 1* 🌸✨\n\nLucy te invita a vivir su cuento de hadas. 👑\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-oficial/');
+            await sleep(2000);
+            if (userStates.get(userId)?.duenoAtendio) return;
+            await sendImage(userId, FIREBASE_URLS.imagenRafaela, '*Ejemplo 2* 🌸✨\n\nRafaela te invita a descubrir cómo continúa su historia. 👑💕\n👉 https://invitartes.com/erase-una-vez-mis-xv-anios-rafaela/');
+        } else {
+            await sendImage(userId, FIREBASE_URLS.imagenSobres, '✨ *Ejemplo 1 — Boda* ✨\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/');
+            await sleep(2000);
+            if (userStates.get(userId)?.duenoAtendio) return;
+            await sendImage(userId, FIREBASE_URLS.imagenLia, '🌸 *Ejemplo 2 — XV años* 🌸\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/');
+        }
+
+        await sleep(2000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId, 'Sus invitados confirmaron directo desde ahí — sin llamadas, sin perseguir a nadie. 😊');
+        await sleep(5000);
+        if (userStates.get(userId)?.duenoAtendio) return;
+        await sendText(userId,
+            '¿Te gustaría saber cómo funcionan nuestras invitaciones y cuánto cuestan? Te explico sin compromiso 😊\n\n' +
+            '1️⃣ ✅ Sí, cuéntame\n2️⃣ ❌ Ahora no, gracias\n\n✍️ Escriba solo el número para continuar.'
+        );
+        const estado = userStates.get(userId);
+        if (estado) { estado.paso = 'guia_permiso'; estado.tipoEvento = tipoEvento; }
+    } catch (err) {
+        console.error('❌ Error puente emocional:', err.message);
+    } finally {
+        processingUsers.delete(userId);
+    }
+}
+
+function programarSeguimientosGenerales(userId, esEspanol, phone) {
+    const now = new Date();
+
+    setTimeout(async () => {
+        const e = userStates.get(userId);
+        if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado && !e.duenoAtendio) {
+            try {
+                await sendText(userId, esEspanol
+                    ? '¡Hola! 👋 Soy *Carolina* de *Invitartes*, ¿tiene alguna pregunta sobre los paquetes?\n\nEstoy aquí para ayudarle ✨'
+                    : 'Hello! 👋 I am *Carolina* from *Invitartes*, do you have any questions?\n\nI am here to help you ✨');
+                e.seguimiento1Enviado = true;
+            } catch { console.log('⚠️ Error seg 1'); }
+        }
+    }, 7 * 60 * 1000);
+
+    setTimeout(async () => {
+        const e = userStates.get(userId);
+        if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
+            try {
+                await sendText(userId, esEspanol
+                    ? 'Le dejo algunos ejemplos más por si gusta revisarles:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda Pasaporte: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduación: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nPara comenzar:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
+                    : 'Here are some more examples:\n\n• Sweet 15: https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Passport Wedding: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduation: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nTo get started:\n📝 ' + FORM + '\n\nI am here for you 💛');
+                e.seguimiento2Enviado = true;
+            } catch { console.log('⚠️ Error seg 2'); }
+        }
+    }, 14 * 60 * 1000);
+
+    // 24h a las 11:45 Guayaquil = 16:45 UTC
+    const manana1145 = new Date(now);
+    manana1145.setDate(manana1145.getDate() + 1);
+    manana1145.setHours(16, 45, 0, 0);
+    const ms1145 = Math.max(manana1145.getTime() - now.getTime(), 60000);
+
+    setTimeout(async () => {
+        const e = userStates.get(userId);
+        if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento3Enviado && !e.duenoAtendio) {
+            try {
+                await sendText(userId, esEspanol
+                    ? '¡Hola! 👋 Soy *Carolina* de *Invitartes*.\n\nAyer nos escribió preguntando sobre nuestras invitaciones y quería saber, ¿pudo revisar los paquetes? ¿Le quedó alguna duda? 😊\n\nCon nuestras invitaciones puede tener:\n\n💌 Diseño único según su temática\n✅ Confirmaciones automáticas\n🎵 Música y galería de fotos\n📊 Panel en tiempo real\n🌍 Envío instantáneo\n\nTodo desde *$85 USD* — entrega en máximo 5 días.\n\nCuando esté listo/a:\n📝 ' + FORM + ' 🎨✨'
+                    : 'Hello! 👋 I am *Carolina* from *Invitartes*.\n\nYesterday you wrote to us — were you able to review the packages? Any questions? 😊\n\nAll from *$85 USD* — delivered in maximum 5 days.\n\n📝 ' + FORM + ' 🎨✨');
+                e.seguimiento3Enviado = true;
+            } catch { console.log('⚠️ Error seg 3'); }
+        }
+    }, ms1145);
+
+    // 7 días a las 12:15 Guayaquil = 17:15 UTC
+    const siete1215 = new Date(now);
+    siete1215.setDate(siete1215.getDate() + 7);
+    siete1215.setHours(17, 15, 0, 0);
+    const ms7d = Math.max(siete1215.getTime() - now.getTime(), 60000);
+
+    setTimeout(async () => {
+        const e = userStates.get(userId);
+        if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento7dEnviado && !e.duenoAtendio) {
+            try {
+                const imgRem = (e.tipoEvento === 'xv') ? FIREBASE_URLS.imagenRemarketingQuince : FIREBASE_URLS.imagenRemarketingBoda;
+                await sendImage(userId, imgRem,
+                    esEspanol
+                        ? '¡Hola! 👋 Hace unos días nos escribiste por una invitación digital.\n¿Todavía la estás buscando? Porque tenemos algo nuevo. ✨\n\n🎁 Las próximas 15 reservas reciben *GRATIS* nuestra Página de Fotografías Premium con QR (valorada en $50).\n\nTe entregamos un PDF personalizado con un código QR para colocar en las mesas de tu evento. Tus invitados lo escanean y suben sus fotos directo a una galería exclusiva. 📸\n\n✨ Todos los momentos especiales en un solo lugar.\n\nPuedes empezar con solo *$10 de abono*.\n🛡️ Si no te encanta, te devolvemos tu dinero.\n\n¿Todavía necesitas la invitación? 😊'
+                        : 'Hello! 👋 A few days ago you wrote to us about a digital invitation.\nAre you still looking for one? ✨\n\n🎁 The next 15 reservations receive our Premium Photo Page with QR *FREE* (valued at $50).\n\nYour guests scan a QR code and upload their photos directly to an exclusive gallery. 📸\n\nStart with only *$10 deposit*.\n🛡️ If you don\'t love it, we\'ll refund your money.\n\nDo you still need the invitation? 😊'
+                );
+                e.seguimiento7dEnviado = true;
+            } catch { console.log('⚠️ Error seg 7d'); }
+        }
+    }, ms7d);
+}
+
+async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone) {
     try {
         const e = userStates.get(userId);
         if (e && e.duenoAtendio) return;
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            esEspanol
-                ? '🔗 Le invitamos a visitar este enlace donde podrá conocer cómo funciona nuestra plataforma y ver las características detalladas de cada paquete:\n\n👉 https://invitartes.com/caracteristicas/'
-                : '🔗 We invite you to visit this link to learn how our platform works:\n\n👉 https://invitartes.com/caracteristicas/'
-        );
+        await sendText(userId, esEspanol
+            ? '🔗 Le invitamos a visitar este enlace donde podrá conocer cómo funciona nuestra plataforma:\n\n👉 https://invitartes.com/caracteristicas/'
+            : '🔗 Visit this link to learn how our platform works:\n\n👉 https://invitartes.com/caracteristicas/');
 
         if (esEspanol) {
             await sleep(1500);
@@ -228,34 +369,16 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento) {
         let paquetesText;
         if (tipoEvento === 'xv') {
             paquetesText = esEspanol
-                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n' +
-                  '*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-muestra/\n\n' +
-                  '*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/erase-una-vez-mis-xv-anos-carlita/#\n\n' +
-                  '*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitarts.com/vivi-zambrano-%e2%9c%a8-mis-xv-una-celebracion-unica-muestra/'
-                : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n' +
-                  '*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-muestra/\n\n' +
-                  '*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 (DELUXE Example) https://invitartes.com/erase-una-vez-mis-xv-anos-carlita/#\n\n' +
-                  '*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 (ELITE Example) https://invitarts.com/vivi-zambrano-%e2%9c%a8-mis-xv-una-celebracion-unica-muestra/';
+                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-muestra/\n\n*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/erase-una-vez-mis-xv-anos-carlita/#\n\n*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitarts.com/vivi-zambrano-%e2%9c%a8-mis-xv-una-celebracion-unica-muestra/'
+                : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-muestra/\n\n*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-carlita/#\n\n*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 https://invitarts.com/vivi-zambrano-%e2%9c%a8-mis-xv-una-celebracion-unica-muestra/';
         } else if (tipoEvento === 'boda') {
             paquetesText = esEspanol
-                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n' +
-                  '*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n' +
-                  '*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/baby-shower-amelia-caridad-muestra/\n\n' +
-                  '*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
-                : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n' +
-                  '*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n' +
-                  '*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 (DELUXE Example) https://invitartes.com/baby-shower-amelia-caridad-muestra/\n\n' +
-                  '*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 (ELITE Example) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/';
+                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/baby-shower-amelia-caridad-muestra/\n\n*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
+                : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 https://invitartes.com/baby-shower-amelia-caridad-muestra/\n\n*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/';
         } else {
             paquetesText = esEspanol
-                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n' +
-                  '*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n' +
-                  '*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\n' +
-                  '*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
-                : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n' +
-                  '*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 (ESSENTIAL Example) https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n' +
-                  '*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 (DELUXE Example) https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\n' +
-                  '*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 (ELITE Example) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/';
+                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\n*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
+                : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\n*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/';
         }
         await sendText(userId, paquetesText);
 
@@ -263,18 +386,16 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento) {
         if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             (esEspanol
-                ? 'Para iniciar con el proceso, por favor complete el siguiente formulario (Datos para sus invitaciones):\n📝 ' + FORM + '\n\nO si lo prefiere, también puede enviarnos por WhatsApp los detalles y la temática que desea.\n\nUna vez recibamos la información, nos comprometemos a entregarle las invitaciones en un plazo máximo de *5 días*.\n\n'
+                ? 'Para iniciar con el proceso, por favor complete el siguiente formulario:\n📝 ' + FORM + '\n\nO si lo prefiere, también puede enviarnos por WhatsApp los detalles.\n\nUna vez recibamos la información, nos comprometemos a entregarle las invitaciones en un plazo máximo de *5 días*.\n\n'
                 : 'To start the process, please fill out the following form:\n📝 ' + FORM + '\n\nOr send us the details via WhatsApp.\n\nWe commit to delivering your invitations within a maximum of *5 days*.\n\n') +
-            getDatosBancarios(userId, esEspanol)
+            getDatosBancarios(phone, esEspanol)
         );
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            esEspanol
-                ? 'Si tiene alguna pregunta, por favor coméntenos, estamos para servirle ✨'
-                : 'If you have any questions, please let us know, we are here to help you ✨'
-        );
+        await sendText(userId, esEspanol
+            ? 'Si tiene alguna pregunta, por favor coméntenos, estamos para servirle ✨'
+            : 'If you have any questions, please let us know, we are here to help you ✨');
 
         const estado = userStates.get(userId);
         if (estado) {
@@ -286,273 +407,49 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento) {
             estado.seguimiento7dEnviado   = false;
         }
 
-        // Seguimiento 1 — 7 min
-        setTimeout(async () => {
-            const e = userStates.get(userId);
-            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado && !e.duenoAtendio) {
-                try {
-                    await sendText(userId,
-                        esEspanol
-                            ? '¡Hola! 👋 Soy *Carolina* de *Invitartes*, ¿tiene alguna pregunta sobre los paquetes?\n\nEstoy aquí para ayudarle ✨'
-                            : 'Hello! 👋 I am *Carolina* from *Invitartes*, do you have any questions about our packages?\n\nI am here to help you ✨'
-                    );
-                    e.seguimiento1Enviado = true;
-                } catch { console.log('⚠️ Error seguimiento 1'); }
-            }
-        }, 7 * 60 * 1000);
-
-        // Seguimiento 2 — 14 min
-        setTimeout(async () => {
-            const e = userStates.get(userId);
-            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
-                try {
-                    await sendText(userId,
-                        esEspanol
-                            ? 'Le dejo algunos ejemplos más por si gusta revisarles:\n\n• XV años (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Boda Pasaporte: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduación: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nPara comenzar:\n📝 ' + FORM + '\n\nQuedo atenta 💛'
-                            : 'Here are some more examples:\n\n• Sweet 15 (Van Gogh): https://invitartes.com/xv-anos-anghelith-cuando-el-cielo-se-lleno-de-estrellas/\n• Passport Wedding: https://invitartes.com/daniel-alexandra-nuestra-boda-muestra/\n• Graduation: https://invitartes.com/graduacion-promocion-77-colegio-americano-de-guayaquil-copy-copy/#\n\nTo get started:\n📝 ' + FORM + '\n\nI am here for you 💛'
-                    );
-                    e.seguimiento2Enviado = true;
-                } catch { console.log('⚠️ Error seguimiento 2'); }
-            }
-        }, 14 * 60 * 1000);
-
-        // Seguimiento 3 — 24h a las 11:45 am fijo
-        const now = new Date();
-        const manana1145 = new Date(now);
-        manana1145.setDate(manana1145.getDate() + 1);
-        manana1145.setHours(16, 45, 0, 0); // 11:45 Guayaquil = 16:45 UTC
-        const ms1145 = manana1145.getTime() - now.getTime();
-
-        setTimeout(async () => {
-            const e = userStates.get(userId);
-            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento3Enviado && !e.duenoAtendio) {
-                try {
-                    await sendText(userId,
-                        esEspanol
-                            ? '¡Hola! 👋 Soy *Carolina* de *Invitartes*.\n\nAyer nos escribió preguntando sobre nuestras invitaciones digitales y quería saber, ¿pudo revisar los paquetes? ¿Le quedó alguna duda o necesita que le explique algo? 😊\n\nCon nuestras invitaciones puede tener:\n\n💌 Diseño único según su temática\n✅ Confirmaciones automáticas de asistencia\n🎵 Música y galería de fotos integradas\n📊 Panel para ver en tiempo real quiénes asisten\n🌍 Envío instantáneo a todos sus invitados\n\nTodo desde *$85 USD* — con entrega en máximo 5 días.\n\nCuando esté listo/a, llene este formulario y comenzamos:\n📝 ' + FORM + ' 🎨✨'
-                            : 'Hello! 👋 I am *Carolina* from *Invitartes*.\n\nYesterday you wrote to us asking about our digital invitations — were you able to review the packages? Any questions? 😊\n\nWith our invitations you can have:\n\n💌 Unique design based on your theme\n✅ Automatic attendance confirmations\n🎵 Music and photo gallery included\n📊 Real-time panel to see who is attending\n🌍 Instant delivery to all your guests\n\nAll from *$85 USD* — delivered in maximum 5 days.\n\nWhen you are ready:\n📝 ' + FORM + ' 🎨✨'
-                    );
-                    e.seguimiento3Enviado = true;
-                } catch { console.log('⚠️ Error seguimiento 3'); }
-            }
-        }, ms1145);
-
-        // Seguimiento 7 días — a las 12:15 pm fijo
-        const siete1215 = new Date(now);
-        siete1215.setDate(siete1215.getDate() + 7);
-        siete1215.setHours(17, 15, 0, 0); // 12:15 Guayaquil = 17:15 UTC
-        const ms7d = siete1215.getTime() - now.getTime();
-
-        setTimeout(async () => {
-            const e = userStates.get(userId);
-            if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento7dEnviado && !e.duenoAtendio) {
-                try {
-                    const imgRem = (e.tipoEvento === 'xv') ? FIREBASE_URLS.imagenRemarketingQuince : FIREBASE_URLS.imagenRemarketingBoda;
-                    await sendImage(userId, imgRem,
-                        (esEspanol
-                            ? '¡Hola! 👋 Hace unos días nos escribiste por una invitación digital.\n¿Todavía la estás buscando? Porque tenemos algo nuevo. ✨\n\n' +
-                              '🎁 Las próximas 15 reservas reciben *GRATIS* nuestra Página de Fotografías Premium con QR (valorada en $50).\n\n' +
-                              'Te entregamos un PDF personalizado con un código QR para colocar en las mesas o espacios de tu evento. Tus invitados simplemente lo escanean con su celular y pueden subir directamente las fotos que vayan tomando a una página exclusiva de tu evento. 📸\n\n' +
-                              '✨ Las fotos se van reuniendo automáticamente en una galería colaborativa, para que al final tengas todos esos momentos especiales en un solo lugar.\n\n' +
-                              'Y lo mejor: puedes empezar con solo *$10 de abono*.\n' +
-                              '🛡️ Si no te encanta, te devolvemos tu dinero.\n\n' +
-                              '¿Todavía necesitas la invitación para tu evento? 😊'
-                            : 'Hello! 👋 A few days ago you wrote to us about a digital invitation.\nAre you still looking for one? Because we have something new. ✨\n\n' +
-                              '🎁 The next 15 reservations receive our Premium Photo Page with QR *FREE* (valued at $50).\n\n' +
-                              'We deliver a personalized PDF with a QR code to place on the tables of your event. Your guests scan it and upload their photos directly to an exclusive gallery. 📸\n\n' +
-                              '✨ All photos are automatically gathered in one collaborative gallery.\n\n' +
-                              'And the best part: you can start with only *$10 deposit*.\n' +
-                              '🛡️ If you don\'t love it, we\'ll refund your money.\n\n' +
-                              'Do you still need the invitation for your event? 😊')
-                    );
-                    e.seguimiento7dEnviado = true;
-                } catch { console.log('⚠️ Error seguimiento 7d'); }
-            }
-        }, ms7d);
+        programarSeguimientosGenerales(userId, esEspanol, phone);
 
     } catch (err) {
         console.error('❌ Error flujo paquetes:', err.message);
     }
 }
 
-async function enviarFlujoPaquetesCompleto(userId, esEspanol, tipoEvento) {
-    try {
-        const estado = userStates.get(userId);
-        if (estado) {
-            estado.tipoEvento = tipoEvento;
-            estado.esEspanol = esEspanol;
-        }
-        await enviarFlujoPaquetes(userId, esEspanol, tipoEvento);
-    } finally {
-        processingUsers.delete(userId);
-    }
-}
-
-async function enviarGuiaGratuita(userId, esEspanol) {
+async function enviarSecuenciaXV(userId, phone) {
     try {
         const e = userStates.get(userId);
         if (e && e.duenoAtendio) return;
-        console.log('📖 Flujo Guía: ' + userId);
-
-        await sendText(userId,
-            '¡Aquí la tienes! 🎉\n\n' +
-            '📖 ' + GUIA + '\n\n' +
-            'Léela con calma — son 5 minutos que te van a ahorrar semanas de estrés.'
-        );
-
-        await sleep(5000);
-        if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            'Por cierto, ¿para qué evento estás organizando? Así te puedo ayudar mejor 😊\n\n' +
-            '1️⃣ Boda\n2️⃣ XV Años\n3️⃣ Otro evento\n\n✍️ Escriba solo el número para continuar.'
-        );
-
         const estado = userStates.get(userId);
-        if (estado) {
-            estado.paso = 'guia_segmento';
-        }
-    } catch (err) {
-        console.error('❌ Error guía:', err.message);
-    } finally {
-        processingUsers.delete(userId);
-    }
-}
-
-async function enviarPuenteEmocional(userId, tipoEvento, esEspanol) {
-    try {
-        const e = userStates.get(userId);
-        if (e && e.duenoAtendio) return;
-
-        let puente = '';
-        if (tipoEvento === 'boda') {
-            puente = '¡Qué emoción! 💒 Sabemos lo que es querer que cada detalle quede perfecto — sobre todo cuando es algo tan importante como tu boda.';
-        } else if (tipoEvento === 'xv') {
-            puente = '¡Qué bonito! 🎀 Los XV son un día que se recuerda para siempre — y cada detalle cuenta.';
-        } else {
-            puente = '¡Genial! 🎉 Sea el evento que sea, merece una invitación que trabaje por ti.';
-        }
-
-        await sendText(userId, puente);
-
-        await sleep(3000);
-        if (userStates.get(userId)?.duenoAtendio) return;
-
-        // Enviar 2 ejemplos según tipo
-        if (tipoEvento === 'boda') {
-            await sendImage(userId, FIREBASE_URLS.imagenSobres,
-                '✨ *Ejemplo 1 — Boda* ✨\n\n💍 Juan Pablo & Adriana...\n\nConfirme su asistencia 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
-            );
-            await sleep(2000);
-            if (userStates.get(userId)?.duenoAtendio) return;
-            await sendImage(userId, FIREBASE_URLS.imagenBoda2,
-                '💌 *Ejemplo 2 — Boda* ✨\n\nHugo & Nickole...\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/'
-            );
-        } else if (tipoEvento === 'xv') {
-            await sendImage(userId, FIREBASE_URLS.imagenLucy,
-                '*Ejemplo 1* 🌸✨\n\nÉrase una vez una princesa que soñaba con esta noche... Lucy te invita a vivir su cuento de hadas. 👑\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-oficial/'
-            );
-            await sleep(2000);
-            if (userStates.get(userId)?.duenoAtendio) return;
-            await sendImage(userId, FIREBASE_URLS.imagenRafaela,
-                '*Ejemplo 2* 🌸✨\n\nRafaela te invita a descubrir cómo continúa su historia. 👑💕\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anios-rafaela/'
-            );
-        } else {
-            await sendImage(userId, FIREBASE_URLS.imagenSobres,
-                '✨ *Ejemplo 1 — Boda* ✨\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
-            );
-            await sleep(2000);
-            if (userStates.get(userId)?.duenoAtendio) return;
-            await sendImage(userId, FIREBASE_URLS.imagenLia,
-                '🌸 *Ejemplo 2 — XV años* 🌸\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
-            );
-        }
-
-        await sleep(2000);
-        if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            'Sus invitados confirmaron directo desde ahí — sin llamadas, sin perseguir a nadie. 😊'
-        );
-
-        await sleep(5000);
-        if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            '¿Te gustaría saber cómo funcionan nuestras invitaciones y cuánto cuestan? Te explico sin compromiso 😊\n\n' +
-            '1️⃣ ✅ Sí, cuéntame\n' +
-            '2️⃣ ❌ Ahora no, gracias\n\n' +
-            '✍️ Escriba solo el número para continuar.'
-        );
-
-        const estado = userStates.get(userId);
-        if (estado) {
-            estado.paso = 'guia_permiso';
-            estado.tipoEvento = tipoEvento;
-        }
-    } catch (err) {
-        console.error('❌ Error puente emocional:', err.message);
-    } finally {
-        processingUsers.delete(userId);
-    }
-}
-
-async function enviarSecuenciaXV(userId) {
-    try {
-        const e = userStates.get(userId);
-        if (e && e.duenoAtendio) return;
-        console.log('📤 Secuencia XV: ' + userId);
-
-        const estado = userStates.get(userId);
-        if (estado) estado.tipoEvento = 'xv';
+        if (estado) { estado.tipoEvento = 'xv'; estado.esEspanol = true; }
 
         await sleep(1500);
         if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             '¡Qué emoción! 👑💕\n\nSabemos que organizar unos XV puede ser emocionante, pero también traer muchas dudas y organización.\n\nPor eso en *Invitartes* no solo diseñamos invitaciones digitales.\n\nLe ofrecemos una plataforma que le ayuda a mantener todo bajo control para que pueda disfrutar mucho más este momento junto a su hija. 💛'
         );
-
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
         await sendText(userId,
             'Con nuestra plataforma podrá:\n\n✅ Confirmaciones de asistencia en tiempo real.\n✅ Control total de invitados.\n✅ Invitados informados desde un solo lugar.\n✅ Invitación digital totalmente personalizada.\n✅ Galería colaborativa de fotografías.\n✅ Reportes y estadísticas.\n\n✨ Además, contamos con funciones exclusivas desarrolladas por *Invitartes* que preferimos explicar durante la asesoría, ya que forman parte del valor diferencial de nuestra plataforma — *única en el mercado*. 👑'
         );
-
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendImage(userId, FIREBASE_URLS.imagenLucy,
-            '*Ejemplo 1* 🌸✨\n\nÉrase una vez una princesa que soñaba con esta noche... y hoy ese sueño se hace realidad. Lucy te invita a vivir su cuento de hadas. 👑\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-oficial/'
-        );
-
+        await sendImage(userId, FIREBASE_URLS.imagenLucy, '*Ejemplo 1* 🌸✨\n\nÉrase una vez una princesa que soñaba con esta noche... Lucy te invita a vivir su cuento de hadas. 👑\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-oficial/');
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendImage(userId, FIREBASE_URLS.imagenRafaela,
-            '*Ejemplo 2* 🌸✨\n\nHabía una vez una historia que comenzaba con "Érase una vez"... Rafaela te invita a descubrir cómo continúa. 👑💕\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anios-rafaela/'
-        );
-
+        await sendImage(userId, FIREBASE_URLS.imagenRafaela, '*Ejemplo 2* 🌸✨\n\nRafaela te invita a descubrir cómo continúa su historia. 👑💕\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anios-rafaela/');
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendImage(userId, FIREBASE_URLS.imagenCatalogo,
-            '¡Con todo cariño le enviamos nuestro catálogo! 🎉\n\nÉchele un vistazo: https://invitartes.com/catalogo/\n\nPuede elegir un modelo o creamos un diseño único según sus colores e ideas. 💛'
-        );
+        await sendImage(userId, FIREBASE_URLS.imagenCatalogo, '¡Con todo cariño le enviamos nuestro catálogo! 🎉\n\nÉchele un vistazo: https://invitartes.com/catalogo/\n\nPuede elegir un modelo o creamos un diseño único. 💛');
 
-        await enviarFlujoPaquetes(userId, true, 'xv');
+        await enviarFlujoPaquetes(userId, true, 'xv', phone);
 
-        const estado2 = userStates.get(userId);
-        if (estado2) {
-            estado2.secuenciaCompleta      = true;
-            estado2.respondioPostSecuencia = false;
-            estado2.seguimiento1Enviado    = false;
-            estado2.seguimiento2Enviado    = false;
-            estado2.seguimiento3Enviado    = false;
-            estado2.seguimiento4Enviado    = false;
-            estado2.seguimiento7dEnviado   = false;
-        }
-
+        // Seguimientos adicionales XV
+        const now = new Date();
         setTimeout(async () => {
             const e2 = userStates.get(userId);
             if (e2 && e2.secuenciaCompleta && !e2.respondioPostSecuencia && !e2.seguimiento1Enviado && !e2.duenoAtendio) {
                 try {
-                    await sendImage(userId, FIREBASE_URLS.imagenSheyla,
-                        '¡Ah, mira! 👑✨ Si necesita algo temático, le comparto este ejemplo.\n\n*Ejemplo 3* 🌸✨\nSheyla quiere que seas parte de su cuento. 👑✨\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-sheyla-muestra/'
-                    );
+                    await sendImage(userId, FIREBASE_URLS.imagenSheyla, '¡Ah, mira! 👑✨ Si necesita algo temático, le comparto este ejemplo.\n\n*Ejemplo 3* 🌸✨\nSheyla quiere que seas parte de su cuento. 👑✨\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-sheyla-muestra/');
                     e2.seguimiento1Enviado = true;
                 } catch { console.log('⚠️ Error seg XV 1'); }
             }
@@ -568,12 +465,9 @@ async function enviarSecuenciaXV(userId) {
             }
         }, 14 * 60 * 1000);
 
-        const now = new Date();
         const manana1145 = new Date(now);
         manana1145.setDate(manana1145.getDate() + 1);
         manana1145.setHours(16, 45, 0, 0);
-        const ms1145 = manana1145.getTime() - now.getTime();
-
         setTimeout(async () => {
             const e2 = userStates.get(userId);
             if (e2 && e2.secuenciaCompleta && !e2.respondioPostSecuencia && !e2.seguimiento3Enviado && !e2.duenoAtendio) {
@@ -582,36 +476,17 @@ async function enviarSecuenciaXV(userId) {
                     e2.seguimiento3Enviado = true;
                 } catch { console.log('⚠️ Error seg XV 3'); }
             }
-        }, ms1145);
+        }, Math.max(manana1145.getTime() - now.getTime(), 60000));
 
         setTimeout(async () => {
             const e2 = userStates.get(userId);
             if (e2 && e2.secuenciaCompleta && !e2.respondioPostSecuencia && e2.seguimiento3Enviado && !e2.seguimiento4Enviado && !e2.duenoAtendio) {
                 try {
-                    await sendText(userId,
-                        'Aprovecho para contarle por qué somos la plataforma más completa para administrar el evento de su hija 🏆✨\n\nCon sus credenciales personalizadas, todo lo maneja desde un solo lugar:\n👥 Lista de invitados y confirmaciones automáticas\n📸 Galería de fotos compartida\n📊 Estadísticas en tiempo real de quién ya confirmó\n\nAsí usted se enfoca en disfrutar los XV años, no en perseguir confirmaciones por WhatsApp 👑💛\n\nPlanes desde *$85 USD*, entrega máx. 5 días.\n\n📝 ' + FORM + '\n\n¿Alguna pregunta antes de empezar? Aquí estoy 😊'
-                    );
+                    await sendText(userId, 'Aprovecho para contarle por qué somos la plataforma más completa para administrar el evento de su hija 🏆✨\n\nCon sus credenciales personalizadas, todo lo maneja desde un solo lugar:\n👥 Lista de invitados y confirmaciones automáticas\n📸 Galería de fotos compartida\n📊 Estadísticas en tiempo real\n\nAsí usted se enfoca en disfrutar los XV años. 👑💛\n\nPlanes desde *$85 USD*, entrega máx. 5 días.\n\n📝 ' + FORM + '\n\n¿Alguna pregunta antes de empezar? Aquí estoy 😊');
                     e2.seguimiento4Enviado = true;
                 } catch { console.log('⚠️ Error seg XV 4'); }
             }
         }, (24 * 60 * 60 * 1000) + (10 * 60 * 1000));
-
-        const siete1215 = new Date(now);
-        siete1215.setDate(siete1215.getDate() + 7);
-        siete1215.setHours(17, 15, 0, 0);
-        const ms7d = siete1215.getTime() - now.getTime();
-
-        setTimeout(async () => {
-            const e2 = userStates.get(userId);
-            if (e2 && e2.secuenciaCompleta && !e2.respondioPostSecuencia && !e2.seguimiento7dEnviado && !e2.duenoAtendio) {
-                try {
-                    await sendImage(userId, FIREBASE_URLS.imagenRemarketingQuince,
-                        '¡Hola! 👋 Hace unos días nos escribiste por una invitación digital.\n¿Todavía la estás buscando? Porque tenemos algo nuevo. ✨\n\n🎁 Las próximas 15 reservas reciben *GRATIS* nuestra Página de Fotografías Premium con QR (valorada en $50).\n\nTe entregamos un PDF personalizado con un código QR para colocar en las mesas o espacios de tu evento. Tus invitados simplemente lo escanean y pueden subir directamente las fotos a una página exclusiva. 📸\n\n✨ Las fotos se van reuniendo automáticamente en una galería colaborativa.\n\nY lo mejor: puedes empezar con solo *$10 de abono*.\n🛡️ Si no te encanta, te devolvemos tu dinero.\n\n¿Todavía necesitas la invitación para tu evento? 😊'
-                    );
-                    e2.seguimiento7dEnviado = true;
-                } catch { console.log('⚠️ Error seg XV 7d'); }
-            }
-        }, ms7d);
 
     } catch (err) {
         console.error('❌ Error secuencia XV:', err.message);
@@ -620,71 +495,44 @@ async function enviarSecuenciaXV(userId) {
     }
 }
 
-async function enviarSecuencia(userId, esEspanol, tipoEvento) {
+async function enviarSecuencia(userId, esEspanol, tipoEvento, phone) {
     try {
         const e = userStates.get(userId);
         if (e && e.duenoAtendio) return;
-
         const estado = userStates.get(userId);
-        if (estado) {
-            estado.tipoEvento = tipoEvento;
-            estado.esEspanol = esEspanol;
-        }
-
-        console.log('📤 Secuencia: ' + userId + ' | ' + (esEspanol ? 'ES' : 'EN') + ' | ' + tipoEvento);
+        if (estado) { estado.tipoEvento = tipoEvento; estado.esEspanol = esEspanol; }
 
         await sleep(1500);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            esEspanol
-                ? '¡Hola! 👋 Le saludamos de *Invitartes*, con gusto le contamos sobre nuestras invitaciones digitales ✨\n\n¿Sabía que su invitación puede ser toda una experiencia? 🤩\n\n🎨 Crea invitaciones ilimitadas y personalizadas\n🎵 Con música, fotos y videos incluidos\n💬 Recibe y ve todos los mensajes de sus invitados\n📸 Sus invitados pueden subir sus fotos directamente desde la invitación, ¡creando un álbum compartido en tiempo real!\n✅ Confirmaciones en tiempo real\n🌍 Llega a todo el mundo en segundos\n📊 *Plataforma privada* con contadores en tiempo real, fecha máxima de confirmación, invitaciones ilimitadas y escáner QR opcional'
-                : 'Hello! 👋 Greetings from *Invitartes*, we are happy to tell you about our digital invitations ✨\n\nDid you know your invitation can be a whole experience? 🤩\n\n🎨 Create unlimited and personalized invitations\n🎵 With music, photos and videos included\n💬 Receive and view all messages from your guests\n📸 Your guests can upload their photos directly from the invitation, creating a shared album in real time!\n✅ Real-time confirmations\n🌍 Reaches anywhere in the world in seconds\n📊 *Private platform* with real-time counters, max confirmation date, unlimited invitations and optional QR scanner'
-        );
+        await sendText(userId, esEspanol
+            ? '¡Hola! 👋 Le saludamos de *Invitartes*, con gusto le contamos sobre nuestras invitaciones digitales ✨\n\n¿Sabía que su invitación puede ser toda una experiencia? 🤩\n\n🎨 Crea invitaciones ilimitadas y personalizadas\n🎵 Con música, fotos y videos incluidos\n💬 Recibe y ve todos los mensajes de sus invitados\n📸 Sus invitados pueden subir sus fotos directamente desde la invitación, ¡creando un álbum compartido en tiempo real!\n✅ Confirmaciones en tiempo real\n🌍 Llega a todo el mundo en segundos\n📊 *Plataforma privada* con contadores en tiempo real, fecha máxima de confirmación, invitaciones ilimitadas y escáner QR opcional'
+            : 'Hello! 👋 Greetings from *Invitartes*, we are happy to tell you about our digital invitations ✨\n\nDid you know your invitation can be a whole experience? 🤩\n\n🎨 Create unlimited and personalized invitations\n🎵 With music, photos and videos included\n💬 Receive and view all messages from your guests\n📸 Your guests can upload their photos directly from the invitation, creating a shared album in real time!\n✅ Real-time confirmations\n🌍 Reaches anywhere in the world in seconds\n📊 *Private platform* with real-time counters, unlimited invitations and optional QR scanner');
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendImage(userId, FIREBASE_URLS.imagenSobres,
-            esEspanol
-                ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino, una historia que comienza... 🌹\n\nEl amor más bonito merece ser celebrado de la manera más especial. 💫\n\nConfirme su asistencia 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
-                : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny, a story that begins... 🌹\n\nConfirm your attendance 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
-        );
+        await sendImage(userId, FIREBASE_URLS.imagenSobres, esEspanol
+            ? '✨ *Ejemplo real 1 — Boda* ✨\n\n💍 Dos almas, un destino... 🌹\n\nConfirme su asistencia 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
+            : '✨ *Real example 1 — Wedding* ✨\n\n💍 Two souls, one destiny... 🌹\n\nConfirm your attendance 👇\n🔗 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/');
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-
         if (tipoEvento === 'otro') {
-            await sendImage(userId, FIREBASE_URLS.imagenLia,
-                esEspanol
-                    ? '🌸 *Ejemplo real 2 — Quinceaños* 🌸\n\n🌟 Hay momentos que marcan para siempre... los XV años son uno de ellos. 🎀\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
-                    : '🌸 *Real example 2 — Sweet 15* 🌸\n\n🌟 There are moments that mark you forever... 🎀\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
-            );
+            await sendImage(userId, FIREBASE_URLS.imagenLia, esEspanol
+                ? '🌸 *Ejemplo real 2 — Quinceaños* 🌸\n\n🌟 Hay momentos que marcan para siempre... 🎀\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/'
+                : '🌸 *Real example 2 — Sweet 15* 🌸\n\n🌟 There are moments that mark you forever... 🎀\n\n🔗 https://invitartes.com/invitacion-xv-anos-lia-haro/');
         } else {
-            await sendImage(userId, FIREBASE_URLS.imagenBoda2,
-                esEspanol
-                    ? '💌 *Un amor que se viste de blanco y negro...*\n\nHugo & Nickole te invitan a ser parte del día más importante de sus vidas.\n\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/ 🖤🤍'
-                    : '💌 *A love dressed in black and white...*\n\nHugo & Nickole invite you to be part of the most important day of their lives.\n\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/ 🖤🤍'
-            );
+            await sendImage(userId, FIREBASE_URLS.imagenBoda2, esEspanol
+                ? '💌 *Un amor que se viste de blanco y negro...*\n\nHugo & Nickole\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/ 🖤🤍'
+                : '💌 *A love dressed in black and white...*\n\nHugo & Nickole\n👉 https://invitarts.com/boda-hugo-nickole-una-celebracion-unica-muestras/ 🖤🤍');
         }
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendImage(userId, FIREBASE_URLS.imagenCatalogo,
-            esEspanol
-                ? '¡Con todo cariño le enviamos nuestro catálogo! 🎉\n\nÉchele un vistazo: https://invitartes.com/catalogo/\n\nPuede elegir un modelo o creamos un diseño único según sus colores e ideas. 💛'
-                : 'We are happy to share our catalog with you! 🎉\n\nTake a look: https://invitartes.com/catalogo/ 💛'
-        );
+        await sendImage(userId, FIREBASE_URLS.imagenCatalogo, esEspanol
+            ? '¡Con todo cariño le enviamos nuestro catálogo! 🎉\n\nÉchele un vistazo: https://invitartes.com/catalogo/\n\nPuede elegir un modelo o creamos un diseño único. 💛'
+            : 'We are happy to share our catalog with you! 🎉\n\nTake a look: https://invitartes.com/catalogo/ 💛');
 
-        await enviarFlujoPaquetes(userId, esEspanol, tipoEvento);
-
-        const estado2 = userStates.get(userId);
-        if (estado2) {
-            estado2.secuenciaCompleta      = true;
-            estado2.respondioPostSecuencia = false;
-            estado2.seguimiento1Enviado    = false;
-            estado2.seguimiento2Enviado    = false;
-            estado2.seguimiento3Enviado    = false;
-            estado2.seguimiento7dEnviado   = false;
-        }
+        await enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone);
 
     } catch (err) {
         console.error('❌ Error secuencia:', err.message);
@@ -698,11 +546,9 @@ async function enviarMensajeAsesor(userId, esEspanol) {
         const e = userStates.get(userId);
         if (e && e.duenoAtendio) return;
         await sleep(1500);
-        await sendText(userId,
-            esEspanol
-                ? '👩🏻‍💼 ¡Perfecto! En unos momentos uno de nuestros asesores se pondrá en contacto con usted.\n\nPor favor permanezca en línea 🙏\n\nSerá un placer atenderle. ✨'
-                : '👩🏻‍💼 Perfect! One of our advisors will contact you shortly.\n\nPlease stay online 🙏\n\nIt will be a pleasure to assist you. ✨'
-        );
+        await sendText(userId, esEspanol
+            ? '👩🏻‍💼 ¡Perfecto! En unos momentos uno de nuestros asesores se pondrá en contacto con usted.\n\nPor favor permanezca en línea 🙏\n\nSerá un placer atenderle. ✨'
+            : '👩🏻‍💼 Perfect! One of our advisors will contact you shortly.\n\nPlease stay online 🙏\n\nIt will be a pleasure to assist you. ✨');
     } catch (err) {
         console.error('❌ Error asesor:', err.message);
     } finally {
@@ -715,8 +561,7 @@ async function startBot() {
     const { version } = await fetchLatestBaileysVersion();
 
     sock = makeWASocket({
-        version,
-        auth: state,
+        version, auth: state,
         logger: pino({ level: 'silent' }),
         printQRInTerminal: true,
         browser: ['Invitartes Bot', 'Chrome', '1.0.0'],
@@ -724,25 +569,15 @@ async function startBot() {
     });
 
     sock.ev.on('creds.update', saveCreds);
-
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
-        if (qr) {
-            console.log('📱 QR generado');
-            qrCodeData = await QRCode.toDataURL(qr);
-            isConnected = false;
-        }
+        if (qr) { qrCodeData = await QRCode.toDataURL(qr); isConnected = false; }
         if (connection === 'close') {
-            isConnected = false;
-            qrCodeData = '';
+            isConnected = false; qrCodeData = '';
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) setTimeout(startBot, 3000);
         }
-        if (connection === 'open') {
-            isConnected = true;
-            qrCodeData = '';
-            console.log('✅ Bot conectado!');
-        }
+        if (connection === 'open') { isConnected = true; qrCodeData = ''; console.log('✅ Bot conectado!'); }
     });
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
@@ -751,7 +586,7 @@ async function startBot() {
             try {
                 if (message.key.remoteJid?.endsWith('@g.us')) continue;
                 const userId = message.key.remoteJid;
-                const phoneNumber = userId ? userId.replace('@s.whatsapp.net', '') : '';
+                const phone = userId ? userId.replace('@s.whatsapp.net', '') : '';
 
                 if (message.key.fromMe) {
                     let e = userStates.get(userId);
@@ -764,19 +599,14 @@ async function startBot() {
                             seguimiento4Enviado: false, seguimiento7dEnviado: false,
                             duenoAtendio: true, conversacionLibre: false
                         });
-                    } else {
-                        e.duenoAtendio = true;
-                    }
-                    console.log('👤 Dueño atendió a: ' + userId);
+                    } else { e.duenoAtendio = true; }
+                    console.log('👤 Dueño atendió: ' + userId);
                     continue;
                 }
 
-                const messageText = (
-                    message.message?.conversation ||
-                    message.message?.extendedTextMessage?.text || ''
-                ).trim();
+                const messageText = (message.message?.conversation || message.message?.extendedTextMessage?.text || '').trim();
                 if (!messageText) continue;
-                console.log('📩 ' + userId + ': "' + messageText + '"');
+                console.log('📩 ' + phone + ': "' + messageText + '"');
 
                 if (processingUsers.has(userId)) {
                     const elapsed = Date.now() - processingUsers.get(userId);
@@ -798,32 +628,24 @@ async function startBot() {
                     });
                     estado = userStates.get(userId);
 
-                    // Detectar keyword guía
                     if (esKeywordGuia(messageText)) {
                         estado.paso = 'guia_segmento';
                         enviarGuiaGratuita(userId, true).catch(console.error);
                         continue;
                     }
 
-                    // Detectar idioma por país
-                    if (esAngloparlante(phoneNumber)) {
+                    // Solo pregunta idioma si es número angloparlante con longitud exacta
+                    if (esAngloparlante(phone)) {
                         estado.paso = 'pregunta_idioma';
-                        enviarPreguntaIdioma(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        enviarPreguntaIdioma(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else {
-                        enviarBienvenida(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        enviarBienvenida(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     }
                     continue;
                 }
 
                 if (estado.duenoAtendio) continue;
 
-                // Keyword guía en cualquier momento del paso bienvenida
                 if (estado.paso === 'bienvenida' && esKeywordGuia(messageText)) {
                     processingUsers.set(userId, Date.now());
                     estado.paso = 'guia_segmento';
@@ -832,164 +654,94 @@ async function startBot() {
                     continue;
                 }
 
-                // Pregunta de idioma (angloparlantes)
                 if (estado.paso === 'pregunta_idioma') {
                     if (messageText === '1') {
                         processingUsers.set(userId, Date.now());
-                        estado.esEspanol = true;
-                        estado.paso = 'bienvenida';
-                        enviarBienvenida(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        estado.esEspanol = true; estado.paso = 'bienvenida';
+                        enviarBienvenida(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '2') {
                         processingUsers.set(userId, Date.now());
-                        estado.esEspanol = false;
-                        estado.paso = 'bienvenida_en';
-                        enviarBienvenidaIngles(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        estado.esEspanol = false; estado.paso = 'bienvenida_en';
+                        enviarBienvenidaIngles(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else {
                         processingUsers.set(userId, Date.now());
-                        enviarPreguntaIdioma(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        enviarPreguntaIdioma(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     }
                     continue;
                 }
 
-                // Menú inglés
                 if (estado.paso === 'bienvenida_en') {
                     if (messageText === '1') {
-                        processingUsers.set(userId, Date.now());
-                        estado.paso = 'en_secuencia';
-                        enviarSecuencia(userId, false, 'boda').catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
+                        enviarSecuencia(userId, false, 'boda', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '2') {
-                        processingUsers.set(userId, Date.now());
-                        estado.paso = 'en_secuencia';
-                        enviarSecuenciaXV(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
+                        enviarSecuenciaXV(userId, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '3') {
-                        processingUsers.set(userId, Date.now());
-                        estado.paso = 'en_secuencia';
-                        enviarSecuencia(userId, false, 'otro').catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
+                        enviarSecuencia(userId, false, 'otro', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '4') {
-                        processingUsers.set(userId, Date.now());
-                        estado.paso = 'guia_segmento';
+                        processingUsers.set(userId, Date.now()); estado.paso = 'guia_segmento';
                         enviarGuiaGratuita(userId, false).catch(console.error);
                         processingUsers.delete(userId);
                     } else {
                         processingUsers.set(userId, Date.now());
-                        enviarBienvenidaIngles(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        enviarBienvenidaIngles(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     }
                     continue;
                 }
 
-                // Flujo guía — segmentación
                 if (estado.paso === 'guia_segmento') {
                     let tipo = null;
                     if (messageText === '1') tipo = 'boda';
                     else if (messageText === '2') tipo = 'xv';
                     else if (messageText === '3') tipo = 'otro';
-
                     if (tipo) {
                         processingUsers.set(userId, Date.now());
-                        estado.tipoEvento = tipo;
-                        estado.paso = 'guia_puente';
-                        enviarPuenteEmocional(userId, tipo, estado.esEspanol !== false).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        estado.tipoEvento = tipo; estado.paso = 'guia_puente';
+                        enviarPuenteEmocional(userId, tipo, estado.esEspanol !== false).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     }
                     continue;
                 }
 
-                // Flujo guía — permiso para vender
                 if (estado.paso === 'guia_permiso') {
                     if (messageText === '1') {
-                        processingUsers.set(userId, Date.now());
-                        estado.paso = 'en_secuencia';
-                        enviarFlujoPaquetesCompleto(userId, estado.esEspanol !== false, estado.tipoEvento || 'boda').catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
+                        enviarFlujoPaquetes(userId, estado.esEspanol !== false, estado.tipoEvento || 'boda', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '2') {
-                        processingUsers.set(userId, Date.now());
                         await sendText(userId, '¡Perfecto! Disfruta la guía y si más adelante necesitas algo, aquí estamos. 💛');
-                        estado.conversacionLibre = true;
-                        estado.paso = 'libre';
-                        processingUsers.delete(userId);
+                        estado.conversacionLibre = true; estado.paso = 'libre';
                     }
                     continue;
                 }
 
-                // Menú principal
                 if (estado.paso === 'bienvenida') {
                     if (messageText === '1') {
-                        processingUsers.set(userId, Date.now());
-                        estado.esEspanol = true;
-                        estado.paso = 'en_secuencia';
-                        enviarSecuenciaXV(userId).catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        processingUsers.set(userId, Date.now()); estado.esEspanol = true; estado.paso = 'en_secuencia';
+                        enviarSecuenciaXV(userId, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '2') {
-                        processingUsers.set(userId, Date.now());
-                        estado.esEspanol = true;
-                        estado.paso = 'en_secuencia';
-                        enviarSecuencia(userId, true, 'boda').catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        processingUsers.set(userId, Date.now()); estado.esEspanol = true; estado.paso = 'en_secuencia';
+                        enviarSecuencia(userId, true, 'boda', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '3') {
-                        processingUsers.set(userId, Date.now());
-                        estado.esEspanol = true;
-                        estado.paso = 'en_secuencia';
-                        enviarSecuencia(userId, true, 'otro').catch(err => {
-                            console.error(err.message);
-                            processingUsers.delete(userId);
-                        });
+                        processingUsers.set(userId, Date.now()); estado.esEspanol = true; estado.paso = 'en_secuencia';
+                        enviarSecuencia(userId, true, 'otro', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                     } else if (messageText === '4') {
-                        processingUsers.set(userId, Date.now());
-                        estado.paso = 'guia_segmento';
+                        processingUsers.set(userId, Date.now()); estado.paso = 'guia_segmento';
                         enviarGuiaGratuita(userId, true).catch(console.error);
                         processingUsers.delete(userId);
                     } else {
                         estado.intentoMenu = (estado.intentoMenu || 0) + 1;
                         processingUsers.set(userId, Date.now());
                         if (estado.intentoMenu === 1) {
-                            enviarMenuRepetido(userId).catch(err => {
-                                console.error(err.message);
-                                processingUsers.delete(userId);
-                            });
+                            enviarMenuRepetido(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                         } else {
-                            enviarMensajeAsesorFinal(userId).catch(err => {
-                                console.error(err.message);
-                                processingUsers.delete(userId);
-                            });
+                            enviarMensajeAsesorFinal(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                         }
                     }
                     continue;
                 }
 
-                if (estado.secuenciaCompleta) {
-                    estado.respondioPostSecuencia = true;
-                    continue;
-                }
-
+                if (estado.secuenciaCompleta) { estado.respondioPostSecuencia = true; continue; }
                 if (estado.conversacionLibre || estado.paso === 'libre') continue;
 
             } catch (err) {
@@ -1009,12 +761,10 @@ app.get('/', async (req, res) => {
     }
 });
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', connected: isConnected });
-});
+app.get('/health', (req, res) => { res.json({ status: 'ok', connected: isConnected }); });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v6.0 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v6.1 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
