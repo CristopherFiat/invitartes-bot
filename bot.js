@@ -23,6 +23,8 @@ const FIREBASE_URLS = {
     imagenSheyla:      BASE + '11c-scaled_11zon_11zon.webp?alt=media&token=3c729c2e-aaae-41cb-9c7d-d22e70389dc3',
     imagenRemarketingBoda:   BASE + 're_boda.webp?alt=media&token=fc94abde-5f00-40cf-bc18-549484f3b00b',
     imagenRemarketingQuince: BASE + 're_quince.webp?alt=media&token=8e10bc2f-3f2b-4506-aaba-352e3a9e2ac7',
+    imagenAbono15:     BASE + 'abono15.webp?alt=media&token=8bb13a3b-3d8f-417f-bf28-797dec10bace',
+    imagenAbonoBoda:   BASE + 'abonoboda.webp?alt=media&token=50b28afb-0a96-42ee-b74a-91f68691e113',
 };
 
 const userStates      = new Map();
@@ -300,7 +302,6 @@ function programarSeguimientosGenerales(userId, esEspanol, phone) {
         }
     }, 14 * 60 * 1000);
 
-    // 11:45 am Guayaquil = 16:45 UTC día siguiente
     const manana1145 = new Date(now);
     manana1145.setDate(manana1145.getDate() + 1);
     manana1145.setHours(16, 45, 0, 0);
@@ -318,7 +319,6 @@ function programarSeguimientosGenerales(userId, esEspanol, phone) {
         }
     }, ms1145);
 
-    // 12:15 pm Guayaquil = 17:15 UTC, 7 días después
     const siete1215 = new Date(now);
     siete1215.setDate(siete1215.getDate() + 7);
     siete1215.setHours(17, 15, 0, 0);
@@ -361,6 +361,9 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone) {
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
 
+        // Imagen de abono según tipo de evento
+        const imagenAbono = (tipoEvento === 'xv') ? FIREBASE_URLS.imagenAbono15 : FIREBASE_URLS.imagenAbonoBoda;
+
         let paquetesText;
         if (tipoEvento === 'xv') {
             paquetesText = esEspanol
@@ -375,7 +378,9 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone) {
                 ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n*ESSENTIAL* — $85\nBasado en plantilla, una sola invitación para todos, sin fotos, sencillo y bonito.\n👉 (Ejemplo ESSENTIAL) https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\nDiseño con nombre y número de pases personalizados + 4 fotos + música y plataforma de envíos.\n👉 (Ejemplo DELUXE) https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\n*ÉLITE* — $130 👑\nTodo lo del Deluxe + *invitaciones ilimitadas* + hasta 20 fotos + íconos animados, animaciones premium, fecha máxima de confirmación y más.\n👉 (Ejemplo ÉLITE) https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
                 : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\n*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/';
         }
-        await sendText(userId, paquetesText);
+
+        // Enviamos imagen de abono con el texto de paquetes como caption
+        await sendImage(userId, imagenAbono, paquetesText);
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
@@ -753,7 +758,7 @@ app.get('/', async (req, res) => {
 app.get('/health', (req, res) => { res.json({ status: 'ok', connected: isConnected }); });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v6.1 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v6.2 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
