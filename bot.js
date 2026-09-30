@@ -29,7 +29,7 @@ const userStates      = new Map();
 const processingUsers = new Map();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const FORM = 'https://invitartes.com/plataforma-administracion-eventos/';
-const GUIA = 'https://drive.google.com/file/d/1-20hT7sOjSJSd6poqRZb3jfYWB3c4ew5/view?usp=sharing';
+const GUIA = 'https://drive.google.com/file/d/1HREPiYR6zb-eAIJqGZvLp-EJ3wM-AHgx/view?usp=sharing';
 const PAYPAL = 'https://paypal.me/CristopherAlvarezG?locale.x=es_XC&country.x=EC';
 
 function esMexico(phone) {
@@ -37,14 +37,13 @@ function esMexico(phone) {
 }
 
 function esAngloparlante(phone) {
-    // Prefijo + longitud exacta para evitar falsos positivos
     const prefijos = [
-        { code: '1', len: 11 },    // USA/Canada
-        { code: '44', len: 12 },   // UK
-        { code: '61', len: 11 },   // Australia
-        { code: '64', len: 11 },   // Nueva Zelanda
-        { code: '353', len: 12 },  // Irlanda
-        { code: '27', len: 11 },   // Sudáfrica
+        { code: '1', len: 11 },
+        { code: '44', len: 12 },
+        { code: '61', len: 11 },
+        { code: '64', len: 11 },
+        { code: '353', len: 12 },
+        { code: '27', len: 11 },
     ];
     if (!phone) return false;
     return prefijos.some(p => phone.startsWith(p.code) && phone.length === p.len);
@@ -73,9 +72,7 @@ function getDatosBancarios(phone, esEspanol) {
               'Or via PayPal:\n👉 ' + PAYPAL + '\n\n' +
               'The remaining balance can be paid at the time of delivery of your invitations. ✨';
     } else if (!esEspanol) {
-        return 'We can start with an initial deposit of *$10*.\n\n' +
-               'Via PayPal:\n👉 ' + PAYPAL + '\n\n' +
-               'The remaining balance can be paid at the time of delivery of your invitations. ✨';
+        return 'We can start with an initial deposit of *$10*.\n\nVia PayPal:\n👉 ' + PAYPAL + '\n\nThe remaining balance can be paid at the time of delivery of your invitations. ✨';
     } else {
         return 'Empezamos con un abono inicial de *$10*, que puede realizar al siguiente número de cuenta:\n\n' +
                '🏦 *Banco de Loja*\n' +
@@ -303,7 +300,7 @@ function programarSeguimientosGenerales(userId, esEspanol, phone) {
         }
     }, 14 * 60 * 1000);
 
-    // 24h a las 11:45 Guayaquil = 16:45 UTC
+    // 11:45 am Guayaquil = 16:45 UTC día siguiente
     const manana1145 = new Date(now);
     manana1145.setDate(manana1145.getDate() + 1);
     manana1145.setHours(16, 45, 0, 0);
@@ -321,7 +318,7 @@ function programarSeguimientosGenerales(userId, esEspanol, phone) {
         }
     }, ms1145);
 
-    // 7 días a las 12:15 Guayaquil = 17:15 UTC
+    // 12:15 pm Guayaquil = 17:15 UTC, 7 días después
     const siete1215 = new Date(now);
     siete1215.setDate(siete1215.getDate() + 7);
     siete1215.setHours(17, 15, 0, 0);
@@ -332,11 +329,9 @@ function programarSeguimientosGenerales(userId, esEspanol, phone) {
         if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento7dEnviado && !e.duenoAtendio) {
             try {
                 const imgRem = (e.tipoEvento === 'xv') ? FIREBASE_URLS.imagenRemarketingQuince : FIREBASE_URLS.imagenRemarketingBoda;
-                await sendImage(userId, imgRem,
-                    esEspanol
-                        ? '¡Hola! 👋 Hace unos días nos escribiste por una invitación digital.\n¿Todavía la estás buscando? Porque tenemos algo nuevo. ✨\n\n🎁 Las próximas 15 reservas reciben *GRATIS* nuestra Página de Fotografías Premium con QR (valorada en $50).\n\nTe entregamos un PDF personalizado con un código QR para colocar en las mesas de tu evento. Tus invitados lo escanean y suben sus fotos directo a una galería exclusiva. 📸\n\n✨ Todos los momentos especiales en un solo lugar.\n\nPuedes empezar con solo *$10 de abono*.\n🛡️ Si no te encanta, te devolvemos tu dinero.\n\n¿Todavía necesitas la invitación? 😊'
-                        : 'Hello! 👋 A few days ago you wrote to us about a digital invitation.\nAre you still looking for one? ✨\n\n🎁 The next 15 reservations receive our Premium Photo Page with QR *FREE* (valued at $50).\n\nYour guests scan a QR code and upload their photos directly to an exclusive gallery. 📸\n\nStart with only *$10 deposit*.\n🛡️ If you don\'t love it, we\'ll refund your money.\n\nDo you still need the invitation? 😊'
-                );
+                await sendImage(userId, imgRem, esEspanol
+                    ? '¡Hola! 👋 Hace unos días nos escribiste por una invitación digital.\n¿Todavía la estás buscando? Porque tenemos algo nuevo. ✨\n\n🎁 Las próximas 15 reservas reciben *GRATIS* nuestra Página de Fotografías Premium con QR (valorada en $50).\n\nTe entregamos un PDF personalizado con un código QR para colocar en las mesas de tu evento. Tus invitados lo escanean y suben sus fotos directo a una galería exclusiva. 📸\n\n✨ Todos los momentos especiales en un solo lugar.\n\nPuedes empezar con solo *$10 de abono*.\n🛡️ Si no te encanta, te devolvemos tu dinero.\n\n¿Todavía necesitas la invitación? 😊'
+                    : 'Hello! 👋 A few days ago you wrote to us about a digital invitation.\nAre you still looking for one? ✨\n\n🎁 The next 15 reservations receive our Premium Photo Page with QR *FREE* (valued at $50).\n\nYour guests scan a QR code and upload their photos directly to an exclusive gallery. 📸\n\nStart with only *$10 deposit*.\n🛡️ If you don\'t love it, we\'ll refund your money.\n\nDo you still need the invitation? 😊');
                 e.seguimiento7dEnviado = true;
             } catch { console.log('⚠️ Error seg 7d'); }
         }
@@ -423,14 +418,10 @@ async function enviarSecuenciaXV(userId, phone) {
 
         await sleep(1500);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            '¡Qué emoción! 👑💕\n\nSabemos que organizar unos XV puede ser emocionante, pero también traer muchas dudas y organización.\n\nPor eso en *Invitartes* no solo diseñamos invitaciones digitales.\n\nLe ofrecemos una plataforma que le ayuda a mantener todo bajo control para que pueda disfrutar mucho más este momento junto a su hija. 💛'
-        );
+        await sendText(userId, '¡Qué emoción! 👑💕\n\nSabemos que organizar unos XV puede ser emocionante, pero también traer muchas dudas y organización.\n\nPor eso en *Invitartes* no solo diseñamos invitaciones digitales.\n\nLe ofrecemos una plataforma que le ayuda a mantener todo bajo control para que pueda disfrutar mucho más este momento junto a su hija. 💛');
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
-        await sendText(userId,
-            'Con nuestra plataforma podrá:\n\n✅ Confirmaciones de asistencia en tiempo real.\n✅ Control total de invitados.\n✅ Invitados informados desde un solo lugar.\n✅ Invitación digital totalmente personalizada.\n✅ Galería colaborativa de fotografías.\n✅ Reportes y estadísticas.\n\n✨ Además, contamos con funciones exclusivas desarrolladas por *Invitartes* que preferimos explicar durante la asesoría, ya que forman parte del valor diferencial de nuestra plataforma — *única en el mercado*. 👑'
-        );
+        await sendText(userId, 'Con nuestra plataforma podrá:\n\n✅ Confirmaciones de asistencia en tiempo real.\n✅ Control total de invitados.\n✅ Invitados informados desde un solo lugar.\n✅ Invitación digital totalmente personalizada.\n✅ Galería colaborativa de fotografías.\n✅ Reportes y estadísticas.\n\n✨ Además, contamos con funciones exclusivas desarrolladas por *Invitartes* que preferimos explicar durante la asesoría, ya que forman parte del valor diferencial de nuestra plataforma — *única en el mercado*. 👑');
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
         await sendImage(userId, FIREBASE_URLS.imagenLucy, '*Ejemplo 1* 🌸✨\n\nÉrase una vez una princesa que soñaba con esta noche... Lucy te invita a vivir su cuento de hadas. 👑\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-oficial/');
@@ -443,7 +434,6 @@ async function enviarSecuenciaXV(userId, phone) {
 
         await enviarFlujoPaquetes(userId, true, 'xv', phone);
 
-        // Seguimientos adicionales XV
         const now = new Date();
         setTimeout(async () => {
             const e2 = userStates.get(userId);
@@ -634,7 +624,6 @@ async function startBot() {
                         continue;
                     }
 
-                    // Solo pregunta idioma si es número angloparlante con longitud exacta
                     if (esAngloparlante(phone)) {
                         estado.paso = 'pregunta_idioma';
                         enviarPreguntaIdioma(userId).catch(err => { console.error(err.message); processingUsers.delete(userId); });
