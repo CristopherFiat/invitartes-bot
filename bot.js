@@ -58,6 +58,14 @@ function esKeywordGuia(text) {
            t.includes('guia gratuita') || t.includes('guía gratuita');
 }
 
+function esKeywordAsesor(text) {
+    const t = text.toLowerCase().trim();
+    return t.includes('asesor') || t.includes('hablar con') || t.includes('deseo hablar') ||
+           t.includes('quiero hablar') || t.includes('necesito ayuda') || t.includes('agente') ||
+           t.includes('persona') || t.includes('humano') || t.includes('speak to') ||
+           t.includes('talk to') || t.includes('agent') || t.includes('advisor');
+}
+
 function getDatosBancarios(phone, esEspanol) {
     if (esMexico(phone)) {
         return esEspanol
@@ -199,6 +207,27 @@ async function enviarMensajeAsesorFinal(userId) {
         if (estado) { estado.conversacionLibre = true; estado.paso = 'libre'; }
     } catch (err) {
         console.error('❌ Error asesor final:', err.message);
+    } finally {
+        processingUsers.delete(userId);
+    }
+}
+
+async function enviarMensajeAsesorSolicitado(userId, esEspanol) {
+    try {
+        await sendText(userId, esEspanol
+            ? '👩🏻‍💼 ¡Con gusto! En unos momentos un asesor se comunicará con usted.\n\nPor favor espere, estamos para servirle. ✨'
+            : '👩🏻‍💼 Of course! An advisor will contact you shortly.\n\nPlease wait, we are here to help you. ✨'
+        );
+        const estado = userStates.get(userId);
+        if (estado) {
+            estado.duenoAtendio = false;
+            estado.conversacionLibre = true;
+            estado.paso = 'libre';
+            estado.secuenciaCompleta = false;
+            estado.respondioPostSecuencia = true;
+        }
+    } catch (err) {
+        console.error('❌ Error asesor solicitado:', err.message);
     } finally {
         processingUsers.delete(userId);
     }
@@ -361,7 +390,6 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone) {
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
 
-        // Imagen de abono según tipo de evento
         const imagenAbono = (tipoEvento === 'xv') ? FIREBASE_URLS.imagenAbono15 : FIREBASE_URLS.imagenAbonoBoda;
 
         let paquetesText;
@@ -379,7 +407,6 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone) {
                 : '🎁 *Our Packages*\nAll our invitations are completely personalized 🎨\n\n*ESSENTIAL* — $85\nTemplate-based, simple and beautiful.\n👉 https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\nCustom design + 4 photos + music and sending platform.\n👉 https://invitartes.com/invitacion-graduacion-carlos-auquilla/\n\n*ELITE* — $130 👑\nEverything in Deluxe + unlimited invitations + up to 20 photos + premium animations and more.\n👉 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/';
         }
 
-        // Enviamos imagen de abono con el texto de paquetes como caption
         await sendImage(userId, imagenAbono, paquetesText);
 
         await sleep(2000);
@@ -611,6 +638,14 @@ async function startBot() {
 
                 let estado = userStates.get(userId);
 
+                // ── Keyword asesor — en cualquier momento ──
+                if (estado && !estado.duenoAtendio && !estado.conversacionLibre && esKeywordAsesor(messageText)) {
+                    console.log('🙋 Asesor solicitado por: ' + phone);
+                    processingUsers.set(userId, Date.now());
+                    await enviarMensajeAsesorSolicitado(userId, estado.esEspanol !== false);
+                    continue;
+                }
+
                 if (!estado) {
                     processingUsers.set(userId, Date.now());
                     userStates.set(userId, {
@@ -758,7 +793,7 @@ app.get('/', async (req, res) => {
 app.get('/health', (req, res) => { res.json({ status: 'ok', connected: isConnected }); });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v6.2 (Baileys)');
+    console.log('\n🤖 INVITARTES BOT v6.3 (Baileys)');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
