@@ -9,7 +9,9 @@ const PORT = process.env.PORT || 3000;
 let qrCodeData = '';
 let isConnected = false;
 let sock = null;
-let clienteContador = 0; // Para alternar flujo A/B
+let clienteContador = 0;
+let contadorFlujoA = 0;
+let contadorFlujoB = 0;
 
 const BASE = 'https://firebasestorage.googleapis.com/v0/b/invitartes-bot.firebasestorage.app/o/';
 const FIREBASE_URLS = {
@@ -100,18 +102,21 @@ function getMensajeFormulario(phone, esEspanol) {
 
 function getMenuPostPaquetes(opcionesUsadas, esEspanol) {
     const todas = [
-        { id: '1', texto: esEspanol ? '1️⃣ Quiero contratar un paquete' : '1️⃣ I want to hire a package' },
-        { id: '2', texto: esEspanol ? '2️⃣ Ver el catálogo' : '2️⃣ See the catalog' },
-        { id: '3', texto: esEspanol ? '3️⃣ Diferencia entre Deluxe y Élite' : '3️⃣ Difference between Deluxe and Elite' },
-        { id: '4', texto: esEspanol ? '4️⃣ Cómo funciona la plataforma' : '4️⃣ How the platform works' },
+        { id: '1', texto: esEspanol ? 'Quiero contratar un paquete' : 'I want to hire a package' },
+        { id: '2', texto: esEspanol ? 'Ver el catálogo' : 'See the catalog' },
+        { id: '3', texto: esEspanol ? 'Diferencia entre Deluxe y Élite' : 'Difference between Deluxe and Elite' },
+        { id: '4', texto: esEspanol ? 'Cómo funciona la plataforma' : 'How the platform works' },
     ];
     const disponibles = todas.filter(o => !opcionesUsadas.includes(o.id));
-    // Renumerar
     let num = 1;
     const renumeradas = disponibles.map(o => ({ ...o, num: String(num++) }));
-    const lineas = renumeradas.map(o => o.num + '️⃣ ' + o.texto.replace(/^\d️⃣ /, '')).join('\n');
+    const emojis = ['1️⃣','2️⃣','3️⃣','4️⃣'];
+    const lineas = renumeradas.map((o, i) => emojis[i] + ' ' + o.texto).join('\n');
     return {
-        texto: (esEspanol ? '¿Cómo desea proceder ahora? 😊\n\n👇 Elija una opción *escribiendo el número*:\n\n' : 'How would you like to proceed? 😊\n\n👇 Choose an option *by typing the number*:\n\n') + lineas + '\n\n✍️ ' + (esEspanol ? 'Escriba solo el número para continuar.' : 'Type only the number to continue.'),
+        texto: (esEspanol
+            ? '¿Cómo desea proceder ahora? 😊\n\n👇 Elija una opción *escribiendo el número*:\n\n'
+            : 'How would you like to proceed? 😊\n\n👇 Choose an option *by typing the number*:\n\n') +
+            lineas + '\n\n✍️ ' + (esEspanol ? 'Escriba solo el número para continuar.' : 'Type only the number to continue.'),
         mapa: renumeradas
     };
 }
@@ -302,7 +307,7 @@ async function enviarPuenteEmocional(userId, tipoEvento, esEspanol) {
     }
 }
 
-// ============ FLUJO B — Secuencia nueva ============
+// ============ FLUJO B ============
 async function enviarSecuenciaBoda_B(userId, esEspanol, tipoEvento, phone) {
     try {
         const e = userStates.get(userId);
@@ -320,7 +325,6 @@ async function enviarSecuenciaBoda_B(userId, esEspanol, tipoEvento, phone) {
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
 
-        // Ejemplos según tipo
         if (tipoEvento === 'xv') {
             await sendImage(userId, FIREBASE_URLS.imagenLucy, '*Ejemplo 1* 🌸✨\n\nÉrase una vez una princesa que soñaba con esta noche... Lucy te invita a vivir su cuento de hadas. 👑\n\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-oficial/');
             await sleep(2000);
@@ -341,7 +345,6 @@ async function enviarSecuenciaBoda_B(userId, esEspanol, tipoEvento, phone) {
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
 
-        // Imagen abono + paquetes
         const imagenAbono = (tipoEvento === 'xv') ? FIREBASE_URLS.imagenAbono15 : FIREBASE_URLS.imagenAbonoBoda;
         let paquetesText;
         if (tipoEvento === 'xv') {
@@ -362,7 +365,6 @@ async function enviarSecuenciaBoda_B(userId, esEspanol, tipoEvento, phone) {
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
 
-        // Menú post paquetes
         const menu = getMenuPostPaquetes([], esEspanol);
         await sendText(userId, menu.texto);
 
@@ -401,10 +403,10 @@ async function manejarOpcionMenuB(userId, opcionNum, esEspanol, phone) {
     estado.respondioPostSecuencia = true;
 
     processingUsers.set(userId, Date.now());
+    const numPedido = estado.numPedido || '';
 
     if (idOriginal === '1') {
-        // Contratar
-        await sendText(userId, getMensajeFormulario(phone, esEspanol));
+        await sendText(userId, getMensajeFormulario(phone, esEspanol) + (numPedido ? '\n\n_# Pedido: ' + numPedido + '_' : ''));
         await sleep(2000);
         await sendText(userId, esEspanol ? 'Si tiene alguna pregunta, estamos para servirle ✨' : 'If you have any questions, we are here to help you ✨');
         estado.paso = 'libre';
@@ -414,7 +416,6 @@ async function manejarOpcionMenuB(userId, opcionNum, esEspanol, phone) {
     }
 
     if (idOriginal === '2') {
-        // Catálogo
         await sendImage(userId, FIREBASE_URLS.imagenCatalogo,
             esEspanol
                 ? '¡Con todo cariño le enviamos nuestro catálogo! 🎉\n\nÉchele un vistazo: https://invitartes.com/catalogo/\n\nPuede elegir un modelo o creamos un diseño único según sus colores e ideas. 💛'
@@ -422,14 +423,12 @@ async function manejarOpcionMenuB(userId, opcionNum, esEspanol, phone) {
     }
 
     if (idOriginal === '3') {
-        // Deluxe vs Elite
         await sendText(userId, esEspanol
             ? '💍 *Diferencia entre DELUXE y ÉLITE*\n\nVisualmente ambos paquetes se parecen mucho — la diferencia principal está en la *plataforma* y las *funcionalidades*.\n\n*DELUXE — $105*\n✅ Invitaciones personalizadas con nombre y número de pases\n✅ Hasta 4 fotos + música\n✅ Las invitaciones se generan *por pedido* — si al inicio solicita 80, se activan las 80. Si después de la entrega final necesita más, cada pedido adicional tiene un costo de *$10*, sea que pida 1 o 20 invitaciones más.\n\n*ÉLITE — $130 👑*\n✅ Todo lo del Deluxe, más:\n♾️ *Invitaciones ilimitadas* — genera todas las que necesite sin costo adicional\n📊 Contadores en tiempo real de pases, invitaciones e invitados\n✅ Registro de asistentes el día del evento\n💬 Reconfigura el mensaje de WhatsApp de todas las invitaciones globalmente\n🪑 Establece número de mesa antes o después de enviar\n📅 Fecha máxima de confirmación\n📥 Bandeja de entrada con mensajes de todos sus invitados\n📸 Galería en vivo con las fotos que envían sus invitados\n\n*En resumen:* si va a invitar a muchas personas y quiere control total de su evento, el *ÉLITE* es la mejor inversión. 👑'
-            : '💍 *Difference between DELUXE and ELITE*\n\nVisually both packages look very similar — the main difference is in the *platform* and *features*.\n\n*DELUXE — $105*\n✅ Personalized invitations with name and number of passes\n✅ Up to 4 photos + music\n✅ Invitations are generated *per order* — if you request 80 at first, 80 are activated. If after final delivery you need more, each additional order costs *$10*, whether you request 1 or 20 more.\n\n*ELITE — $130 👑*\n✅ Everything in Deluxe, plus:\n♾️ *Unlimited invitations* — generate as many as you need at no extra cost\n📊 Real-time counters for passes, invitations and guests\n✅ Attendance registration on the day of the event\n💬 Globally reconfigure the WhatsApp message of all invitations\n🪑 Set table numbers before or after sending\n📅 Maximum confirmation date\n📥 Inbox with messages from all your guests\n📸 Live gallery with photos sent by your guests\n\n*In summary:* if you plan to invite many people and want full control of your event, *ELITE* is the best investment. 👑');
+            : '💍 *Difference between DELUXE and ELITE*\n\nVisually both packages look very similar — the main difference is in the *platform* and *features*.\n\n*DELUXE — $105*\n✅ Personalized invitations with name and number of passes\n✅ Up to 4 photos + music\n✅ Invitations generated *per order* — if you request 80 at first, 80 are activated. Each additional order costs *$10*, whether you request 1 or 20 more.\n\n*ELITE — $130 👑*\n✅ Everything in Deluxe, plus:\n♾️ *Unlimited invitations* — generate as many as you need at no extra cost\n📊 Real-time counters for passes, invitations and guests\n✅ Attendance registration on event day\n💬 Globally reconfigure WhatsApp messages\n🪑 Set table numbers before or after sending\n📅 Maximum confirmation date\n📥 Inbox with messages from all guests\n📸 Live gallery with photos from guests\n\n*In summary:* if you plan to invite many people and want full control, *ELITE* is the best investment. 👑');
     }
 
     if (idOriginal === '4') {
-        // Plataforma
         await sendText(userId, esEspanol ? '🎧 Le explicamos brevemente cómo funciona nuestra plataforma:' : '🎧 Here is a brief explanation of how our platform works:');
         await sleep(800);
         await sendAudio(userId, FIREBASE_URLS.audio);
@@ -438,16 +437,15 @@ async function manejarOpcionMenuB(userId, opcionNum, esEspanol, phone) {
             ? '🔗 Aquí puede ver todas las características detalladas:\n\n👉 https://invitartes.com/caracteristicas/'
             : '🔗 Here you can see all the detailed features:\n\n👉 https://invitartes.com/caracteristicas/');
         await sleep(2000);
-        // Enviar paquetes de nuevo
         const imagenAbono = (estado.tipoEvento === 'xv') ? FIREBASE_URLS.imagenAbono15 : FIREBASE_URLS.imagenAbonoBoda;
         let paquetesText2;
         if (estado.tipoEvento === 'xv') {
             paquetesText2 = esEspanol
-                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n*ESSENTIAL* — $85\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-muestra/\n\n*DELUXE* — $105\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-carlita/#\n\n*ÉLITE* — $130 👑\n👉 https://invitarts.com/vivi-zambrano-%e2%9c%a8-mis-xv-una-celebracion-unica-muestra/'
+                ? '🎁 *Nuestros Paquetes*\n\n*ESSENTIAL* — $85\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-muestra/\n\n*DELUXE* — $105\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-carlita/#\n\n*ÉLITE* — $130 👑\n👉 https://invitarts.com/vivi-zambrano-%e2%9c%a8-mis-xv-una-celebracion-unica-muestra/'
                 : '🎁 *Our Packages*\n\n*ESSENTIAL* — $85\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-lucy-muestra/\n\n*DELUXE* — $105\n👉 https://invitartes.com/erase-una-vez-mis-xv-anos-carlita/#\n\n*ELITE* — $130 👑\n👉 https://invitarts.com/vivi-zambrano-%e2%9c%a8-mis-xv-una-celebracion-unica-muestra/';
         } else {
             paquetesText2 = esEspanol
-                ? '🎁 *Nuestros Paquetes*\nTodas nuestras invitaciones son completamente personalizadas 🎨\n\n*ESSENTIAL* — $85\n👉 https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\n👉 https://invitartes.com/baby-shower-amelia-caridad-muestra/\n\n*ÉLITE* — $130 👑\n👉 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
+                ? '🎁 *Nuestros Paquetes*\n\n*ESSENTIAL* — $85\n👉 https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\n👉 https://invitartes.com/baby-shower-amelia-caridad-muestra/\n\n*ÉLITE* — $130 👑\n👉 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/'
                 : '🎁 *Our Packages*\n\n*ESSENTIAL* — $85\n👉 https://invitartes.com/mi-bautizo-sol-isabella-muestra/\n\n*DELUXE* — $105\n👉 https://invitartes.com/baby-shower-amelia-caridad-muestra/\n\n*ELITE* — $130 👑\n👉 https://invitartes.com/invitacion-a-la-boda-de-juan-pablo-y-adriana/';
         }
         await sendImage(userId, imagenAbono, paquetesText2);
@@ -456,7 +454,6 @@ async function manejarOpcionMenuB(userId, opcionNum, esEspanol, phone) {
     await sleep(2000);
     if (userStates.get(userId)?.duenoAtendio) return;
 
-    // Menú actualizado sin opciones ya usadas
     const opcionesRestantes = estado.opcionesUsadas;
     const nuevoMenu = getMenuPostPaquetes(opcionesRestantes, esEspanol);
 
@@ -476,12 +473,11 @@ async function manejarOpcionMenuB(userId, opcionNum, esEspanol, phone) {
 function programarSeguimientosB(userId, esEspanol, phone) {
     const now = new Date();
 
-    // 7 min — formulario
     setTimeout(async () => {
         const e = userStates.get(userId);
         if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && !e.seguimiento1Enviado && !e.duenoAtendio) {
             try {
-                await sendText(userId, getMensajeFormulario(phone, esEspanol));
+                await sendText(userId, getMensajeFormulario(phone, esEspanol) + (e.numPedido ? '\n\n_# Pedido: ' + e.numPedido + '_' : ''));
                 await sleep(1500);
                 await sendText(userId, esEspanol ? 'Si tiene alguna pregunta, estamos para servirle ✨' : 'If you have any questions, we are here to help you ✨');
                 e.seguimiento1Enviado = true;
@@ -489,7 +485,6 @@ function programarSeguimientosB(userId, esEspanol, phone) {
         }
     }, 7 * 60 * 1000);
 
-    // 14 min — Carolina
     setTimeout(async () => {
         const e = userStates.get(userId);
         if (e && e.secuenciaCompleta && !e.respondioPostSecuencia && e.seguimiento1Enviado && !e.seguimiento2Enviado && !e.duenoAtendio) {
@@ -502,7 +497,6 @@ function programarSeguimientosB(userId, esEspanol, phone) {
         }
     }, 14 * 60 * 1000);
 
-    // Día siguiente 12:17 Guayaquil = 17:17 UTC
     const manana1217 = new Date(now);
     manana1217.setDate(manana1217.getDate() + 1);
     manana1217.setHours(17, 17, 0, 0);
@@ -520,7 +514,6 @@ function programarSeguimientosB(userId, esEspanol, phone) {
         }
     }, ms1217);
 
-    // 7 días 12:15 Guayaquil = 17:15 UTC
     const siete1215 = new Date(now);
     siete1215.setDate(siete1215.getDate() + 7);
     siete1215.setHours(17, 15, 0, 0);
@@ -540,7 +533,7 @@ function programarSeguimientosB(userId, esEspanol, phone) {
     }, ms7d);
 }
 
-// ============ FLUJO A — Seguimientos generales ============
+// ============ FLUJO A — Seguimientos ============
 function programarSeguimientosGenerales(userId, esEspanol, phone) {
     const now = new Date();
 
@@ -648,11 +641,16 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone) {
 
         await sleep(2000);
         if (userStates.get(userId)?.duenoAtendio) return;
+
+        const estado = userStates.get(userId);
+        const numPedido = estado?.numPedido || '';
+
         await sendText(userId,
             (esEspanol
                 ? 'Para iniciar con el proceso, por favor complete el siguiente formulario:\n📝 ' + FORM + '\n\nO si lo prefiere, también puede enviarnos por WhatsApp los detalles.\n\nUna vez recibamos la información, nos comprometemos a entregarle las invitaciones en un plazo máximo de *5 días*.\n\n'
                 : 'To start the process, please fill out the following form:\n📝 ' + FORM + '\n\nOr send us the details via WhatsApp.\n\nWe commit to delivering your invitations within a maximum of *5 days*.\n\n') +
-            getDatosBancarios(phone, esEspanol)
+            getDatosBancarios(phone, esEspanol) +
+            (numPedido ? '\n\n_# Pedido: ' + numPedido + '_' : '')
         );
 
         await sleep(2000);
@@ -661,7 +659,6 @@ async function enviarFlujoPaquetes(userId, esEspanol, tipoEvento, phone) {
             ? 'Si tiene alguna pregunta, por favor coméntenos, estamos para servirle ✨'
             : 'If you have any questions, please let us know, we are here to help you ✨');
 
-        const estado = userStates.get(userId);
         if (estado) {
             estado.secuenciaCompleta      = true;
             estado.respondioPostSecuencia = false;
@@ -841,7 +838,7 @@ async function startBot() {
                             respondioPostSecuencia: false, seguimiento1Enviado: false,
                             seguimiento2Enviado: false, seguimiento3Enviado: false,
                             seguimiento4Enviado: false, seguimiento7dEnviado: false,
-                            duenoAtendio: true, conversacionLibre: false, flujo: null
+                            duenoAtendio: true, conversacionLibre: false, flujo: null, numPedido: null
                         });
                     } else { e.duenoAtendio = true; }
                     console.log('👤 Dueño atendió: ' + userId);
@@ -861,7 +858,7 @@ async function startBot() {
 
                 let estado = userStates.get(userId);
 
-                // Keyword asesor en cualquier momento
+                // Keyword asesor
                 if (estado && !estado.duenoAtendio && !estado.conversacionLibre && esKeywordAsesor(messageText)) {
                     processingUsers.set(userId, Date.now());
                     await enviarMensajeAsesorSolicitado(userId, estado.esEspanol !== false);
@@ -872,6 +869,12 @@ async function startBot() {
                     processingUsers.set(userId, Date.now());
                     clienteContador++;
                     const flujoAsignado = (clienteContador % 2 === 0) ? 'B' : 'A';
+                    if (flujoAsignado === 'A') contadorFlujoA++;
+                    else contadorFlujoB++;
+                    const numPedido = flujoAsignado === 'A'
+                        ? 'FA-' + String(contadorFlujoA).padStart(3, '0')
+                        : 'FB-' + String(contadorFlujoB).padStart(3, '0');
+
                     userStates.set(userId, {
                         paso: 'bienvenida', esEspanol: null, tipoEvento: null,
                         intentoMenu: 0, secuenciaCompleta: false,
@@ -879,10 +882,10 @@ async function startBot() {
                         seguimiento2Enviado: false, seguimiento3Enviado: false,
                         seguimiento4Enviado: false, seguimiento7dEnviado: false,
                         duenoAtendio: false, conversacionLibre: false,
-                        flujo: flujoAsignado, menuMapa: null, opcionesUsadas: [], intentoMenuB: 0
+                        flujo: flujoAsignado, numPedido, menuMapa: null, opcionesUsadas: [], intentoMenuB: 0
                     });
                     estado = userStates.get(userId);
-                    console.log('🔀 Cliente #' + clienteContador + ' → Flujo ' + flujoAsignado);
+                    console.log('🔀 Cliente #' + clienteContador + ' → Flujo ' + flujoAsignado + ' | ' + numPedido);
 
                     if (esKeywordGuia(messageText)) {
                         estado.paso = 'guia_segmento';
@@ -901,7 +904,6 @@ async function startBot() {
 
                 if (estado.duenoAtendio) continue;
 
-                // Keyword guía
                 if (estado.paso === 'bienvenida' && esKeywordGuia(messageText)) {
                     processingUsers.set(userId, Date.now());
                     estado.paso = 'guia_segmento';
@@ -910,7 +912,6 @@ async function startBot() {
                     continue;
                 }
 
-                // Pregunta idioma
                 if (estado.paso === 'pregunta_idioma') {
                     if (msgNorm === '1') {
                         processingUsers.set(userId, Date.now());
@@ -927,28 +928,17 @@ async function startBot() {
                     continue;
                 }
 
-                // Menú inglés
                 if (estado.paso === 'bienvenida_en') {
-                    if (msgNorm === '1') {
+                    const opciones = { '1': 'boda', '2': 'xv', '3': 'otro' };
+                    if (opciones[msgNorm]) {
                         processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
+                        const t = opciones[msgNorm];
                         if (estado.flujo === 'B') {
-                            enviarSecuenciaBoda_B(userId, false, 'boda', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        } else {
-                            enviarSecuencia(userId, false, 'boda', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        }
-                    } else if (msgNorm === '2') {
-                        processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
-                        if (estado.flujo === 'B') {
-                            enviarSecuenciaBoda_B(userId, false, 'xv', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        } else {
+                            enviarSecuenciaBoda_B(userId, false, t, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
+                        } else if (t === 'xv') {
                             enviarSecuenciaXV(userId, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        }
-                    } else if (msgNorm === '3') {
-                        processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
-                        if (estado.flujo === 'B') {
-                            enviarSecuenciaBoda_B(userId, false, 'otro', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                         } else {
-                            enviarSecuencia(userId, false, 'otro', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
+                            enviarSecuencia(userId, false, t, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                         }
                     } else if (msgNorm === '4') {
                         processingUsers.set(userId, Date.now()); estado.paso = 'guia_segmento';
@@ -961,12 +951,9 @@ async function startBot() {
                     continue;
                 }
 
-                // Flujo guía segmento
                 if (estado.paso === 'guia_segmento') {
-                    let tipo = null;
-                    if (msgNorm === '1') tipo = 'boda';
-                    else if (msgNorm === '2') tipo = 'xv';
-                    else if (msgNorm === '3') tipo = 'otro';
+                    const mapa = { '1': 'boda', '2': 'xv', '3': 'otro' };
+                    const tipo = mapa[msgNorm];
                     if (tipo) {
                         processingUsers.set(userId, Date.now());
                         estado.tipoEvento = tipo; estado.paso = 'guia_puente';
@@ -975,7 +962,6 @@ async function startBot() {
                     continue;
                 }
 
-                // Flujo guía permiso
                 if (estado.paso === 'guia_permiso') {
                     if (msgNorm === '1') {
                         processingUsers.set(userId, Date.now()); estado.paso = 'en_secuencia';
@@ -987,7 +973,6 @@ async function startBot() {
                     continue;
                 }
 
-                // Menú Flujo B
                 if (estado.paso === 'flujoB_menu') {
                     if (estado.menuMapa && estado.menuMapa.find(o => o.num === msgNorm)) {
                         estado.intentoMenuB = 0;
@@ -1007,28 +992,18 @@ async function startBot() {
                     continue;
                 }
 
-                // Menú principal
                 if (estado.paso === 'bienvenida') {
-                    if (msgNorm === '1') {
-                        processingUsers.set(userId, Date.now()); estado.esEspanol = true; estado.paso = 'en_secuencia';
+                    const opciones = { '1': 'xv', '2': 'boda', '3': 'otro' };
+                    if (opciones[msgNorm]) {
+                        processingUsers.set(userId, Date.now());
+                        estado.esEspanol = true; estado.paso = 'en_secuencia';
+                        const t = opciones[msgNorm];
                         if (estado.flujo === 'B') {
-                            enviarSecuenciaBoda_B(userId, true, 'xv', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        } else {
+                            enviarSecuenciaBoda_B(userId, true, t, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
+                        } else if (t === 'xv') {
                             enviarSecuenciaXV(userId, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        }
-                    } else if (msgNorm === '2') {
-                        processingUsers.set(userId, Date.now()); estado.esEspanol = true; estado.paso = 'en_secuencia';
-                        if (estado.flujo === 'B') {
-                            enviarSecuenciaBoda_B(userId, true, 'boda', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                         } else {
-                            enviarSecuencia(userId, true, 'boda', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        }
-                    } else if (msgNorm === '3') {
-                        processingUsers.set(userId, Date.now()); estado.esEspanol = true; estado.paso = 'en_secuencia';
-                        if (estado.flujo === 'B') {
-                            enviarSecuenciaBoda_B(userId, true, 'otro', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
-                        } else {
-                            enviarSecuencia(userId, true, 'otro', phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
+                            enviarSecuencia(userId, true, t, phone).catch(err => { console.error(err.message); processingUsers.delete(userId); });
                         }
                     } else if (msgNorm === '4') {
                         processingUsers.set(userId, Date.now()); estado.paso = 'guia_segmento';
@@ -1066,10 +1041,12 @@ app.get('/', async (req, res) => {
     }
 });
 
-app.get('/health', (req, res) => { res.json({ status: 'ok', connected: isConnected, clienteContador }); });
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', connected: isConnected, clienteContador, flujoA: contadorFlujoA, flujoB: contadorFlujoB });
+});
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🤖 INVITARTES BOT v7.0 (Baileys) — Flujo A/B');
+    console.log('\n🤖 INVITARTES BOT v7.1 (Baileys) — Flujo A/B + # Pedido');
     console.log('🌐 Puerto: ' + PORT);
     startBot();
 });
